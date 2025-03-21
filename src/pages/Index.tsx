@@ -2,16 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { properties, pointsOfInterest, POI, Property } from '@/utils/data';
-import { filterPropertiesByPOIDistance, MAPBOX_TOKEN } from '@/utils/mapUtils';
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Navbar from '@/components/Navbar';
+import { filterPropertiesByPOIDistance } from '@/utils/mapUtils';
+import MainLayout from '@/components/layout/MainLayout';
 import Map, { MapRef } from '@/components/Map';
-import SearchFilters from '@/components/SearchFilters';
-import PropertyCard from '@/components/PropertyCard';
+import Sidebar from '@/components/sidebar/Sidebar';
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import PropertyDetails from '@/components/PropertyDetails';
-import Chatbot from '@/components/Chatbot';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -92,125 +88,57 @@ const Index = () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
-      
-      <main className="flex-1 flex flex-col pt-16">
-        <div className="flex-1 flex relative">
-          {/* Mobile Sidebar */}
-          {isMobile && (
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetContent side="left" className="w-80 p-0 pt-4">
-                <div className="p-4">
-                  <SearchFilters
-                    poiTypes={poiTypes}
-                    selectedPOITypes={selectedPOITypes}
-                    setSelectedPOITypes={setSelectedPOITypes}
-                    maxDistance={maxDistance}
-                    setMaxDistance={setMaxDistance}
-                    onSearch={handleSearch}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <ScrollArea className="h-[calc(100vh-230px)]">
-                  <div className="p-4 grid gap-4">
-                    {filteredProperties.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-muted-foreground">No properties found matching your criteria.</p>
-                      </div>
-                    ) : (
-                      filteredProperties.map(property => (
-                        <PropertyCard
-                          key={property.id}
-                          property={property}
-                          compact
-                          onClick={() => handleSelectProperty(property)}
-                          selected={selectedProperty?.id === property.id}
-                        />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-          )}
-          
-          {/* Desktop Sidebar */}
-          {!isMobile && (
-            <div className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 overflow-hidden flex flex-col h-[calc(100vh-64px)]`}>
-              <div className="p-6">
-                <SearchFilters
-                  poiTypes={poiTypes}
-                  selectedPOITypes={selectedPOITypes}
-                  setSelectedPOITypes={setSelectedPOITypes}
-                  maxDistance={maxDistance}
-                  setMaxDistance={setMaxDistance}
-                  onSearch={handleSearch}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex-1 overflow-hidden relative">
-                <ScrollArea className="h-full">
-                  <div className="p-6 grid gap-5">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-medium">
-                        {filteredProperties.length} Properties
-                      </h2>
-                    </div>
-                    
-                    {filteredProperties.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-muted-foreground">No properties found matching your criteria.</p>
-                      </div>
-                    ) : (
-                      filteredProperties.map(property => (
-                        <PropertyCard
-                          key={property.id}
-                          property={property}
-                          onClick={() => handleSelectProperty(property)}
-                        />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          )}
-          
-          {/* Mobile Search Overlay */}
-          {isMobile && (
-            <div className="absolute top-3 left-3 right-3 z-10">
-              <SearchFilters
-                poiTypes={poiTypes}
-                selectedPOITypes={selectedPOITypes}
-                setSelectedPOITypes={setSelectedPOITypes}
-                maxDistance={maxDistance}
-                setMaxDistance={setMaxDistance}
-                onSearch={handleSearch}
-                className="w-full"
-              />
-            </div>
-          )}
-          
-          {/* Map */}
-          <div className="flex-1 relative">
-            <Map
-              properties={properties}
-              filteredProperties={filteredProperties}
-              pointsOfInterest={pointsOfInterest}
-              selectedPOI={selectedPOI}
-              selectedProperty={selectedProperty}
-              onSelectProperty={handleSelectProperty}
-              maxDistance={maxDistance}
-              ref={mapRef}
-            />
-          </div>
+    <MainLayout 
+      toggleSidebar={toggleSidebar} 
+      sidebarOpen={sidebarOpen}
+      properties={properties}
+      pointsOfInterest={pointsOfInterest}
+      onSelectProperty={handleSelectProperty}
+      onSelectPOI={handleSelectPOI}
+      onShowPOIs={handleShowPOIs}
+    >
+      <div className="flex-1 flex relative">
+        {/* Sidebar Component */}
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          poiTypes={poiTypes}
+          selectedPOITypes={selectedPOITypes}
+          setSelectedPOITypes={setSelectedPOITypes}
+          maxDistance={maxDistance}
+          setMaxDistance={setMaxDistance}
+          onSearch={handleSearch}
+          filteredProperties={filteredProperties}
+          selectedProperty={selectedProperty}
+          onSelectProperty={handleSelectProperty}
+        />
+        
+        {/* Mobile Search Overlay */}
+        {isMobile && (
+          <MobileSearchOverlay
+            poiTypes={poiTypes}
+            selectedPOITypes={selectedPOITypes}
+            setSelectedPOITypes={setSelectedPOITypes}
+            maxDistance={maxDistance}
+            setMaxDistance={setMaxDistance}
+            onSearch={handleSearch}
+          />
+        )}
+        
+        {/* Map */}
+        <div className="flex-1 relative">
+          <Map
+            properties={properties}
+            filteredProperties={filteredProperties}
+            pointsOfInterest={pointsOfInterest}
+            selectedPOI={selectedPOI}
+            selectedProperty={selectedProperty}
+            onSelectProperty={handleSelectProperty}
+            maxDistance={maxDistance}
+            ref={mapRef}
+          />
         </div>
-      </main>
+      </div>
       
       {/* Property Details Modal */}
       <PropertyDetails
@@ -220,16 +148,7 @@ const Index = () => {
         onSelectPOI={handleSelectPOI}
         isOpen={showPropertyDetails}
       />
-      
-      {/* Chatbot */}
-      <Chatbot
-        properties={properties}
-        pois={pointsOfInterest}
-        onSelectProperty={handleSelectProperty}
-        onSelectPOI={handleSelectPOI}
-        onShowPOIs={handleShowPOIs}
-      />
-    </div>
+    </MainLayout>
   );
 };
 
