@@ -126,11 +126,54 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setIsOpen(false);
   };
 
+  const filterPropertiesBySize = (targetSize: number, tolerance = 0.05) => {
+    const minSize = targetSize * (1 - tolerance);
+    const maxSize = targetSize * (1 + tolerance);
+    
+    return properties.filter(property => 
+      property.size >= minSize && property.size <= maxSize
+    );
+  };
+
   const processUserQuery = (query: string): string => {
     const lowerQuery = query.toLowerCase();
     
     if (/^(hi|hello|hey|greetings)/.test(lowerQuery)) {
-      return "Hello! I can help you find information about warehouses and points of interest. Try asking about properties near specific places, or properties with certain features.";
+      return "Hello! I can help you find information about warehouses and points of interest. Try asking about properties with certain features like 'Show me properties where size is 108,000'.";
+    }
+    
+    // Property filtering by size
+    const sizeFilterRegex = /(?:show|find|display|list|get) (?:me |us )?(?:the |all |some )?(?:properties|warehouses|buildings) (?:where|with|that have|that are) (?:a |the )?(?:size|area|square footage|sq ft) (?:is |of |equal to |around |approximately )?(\d+(?:,\d+)*)/i;
+    const sizeMatch = lowerQuery.match(sizeFilterRegex);
+    
+    if (sizeMatch) {
+      const targetSizeStr = sizeMatch[1].replace(/,/g, '');
+      const targetSize = parseInt(targetSizeStr, 10);
+      
+      if (!isNaN(targetSize)) {
+        const matchedProperties = filterPropertiesBySize(targetSize);
+        
+        if (matchedProperties.length === 0) {
+          return `I couldn't find any properties with a size around ${targetSize.toLocaleString()} sq ft. Try a different size or ask about other property features.`;
+        }
+        
+        // Display filtered properties on the map and table
+        const propertiesStr = matchedProperties.map(p => 
+          `<a href="#" class="text-primary hover:underline" data-property-id="${p.id}">${p.name}</a> (${p.size.toLocaleString()} sq ft)`
+        ).join(', ');
+        
+        // Update the UI to show these properties
+        matchedProperties.forEach(property => {
+          onSelectProperty(property);
+        });
+        
+        toast({
+          title: `Found ${matchedProperties.length} properties`,
+          description: `Properties with size around ${targetSize.toLocaleString()} sq ft`,
+        });
+        
+        return `I found ${matchedProperties.length} properties with size around ${targetSize.toLocaleString()} sq ft: ${propertiesStr}. Click on any property to see details.`;
+      }
     }
     
     const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\s+called|:|\s+named)?\s+['"]?([^'".,!?]+)['"]?/i;
@@ -152,6 +195,61 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
         return `I'll now use ${matchedProperty.name} as our reference property for your questions. What would you like to know about it or places nearby?`;
       } else {
         return `I couldn't find a property named "${propertyName}". Please try another property name.`;
+      }
+    }
+    
+    // Property filtering by price
+    const priceFilterRegex = /(?:show|find|display|list|get) (?:me |us )?(?:the |all |some )?(?:properties|warehouses|buildings) (?:where|with|that have|that are) (?:a |the )?(?:price|cost|value) (?:is |of |equal to |around |approximately |under |below |less than |cheaper than |above |over |more than |greater than |more expensive than )?(?:\$)?(\d+(?:,\d+)*(?:\.\d+)?)(?: ?[kK]| ?[mM]| ?[mM]illion| ?[tT]housand)?/i;
+    const priceMatch = lowerQuery.match(priceFilterRegex);
+    
+    if (priceMatch) {
+      let targetPriceStr = priceMatch[1].replace(/,/g, '');
+      let multiplier = 1;
+      
+      // Check for K/M/thousand/million modifiers
+      const modifier = priceMatch[2]?.toLowerCase() || '';
+      if (modifier.includes('k') || modifier.includes('thousand')) {
+        multiplier = 1000;
+      } else if (modifier.includes('m') || modifier.includes('million')) {
+        multiplier = 1000000;
+      }
+      
+      const targetPrice = parseFloat(targetPriceStr) * multiplier;
+      
+      if (!isNaN(targetPrice)) {
+        let matchedProperties = properties;
+        
+        // Handle comparison operators
+        if (lowerQuery.includes('under') || lowerQuery.includes('below') || lowerQuery.includes('less than') || lowerQuery.includes('cheaper than')) {
+          matchedProperties = properties.filter(p => p.price < targetPrice);
+        } else if (lowerQuery.includes('above') || lowerQuery.includes('over') || lowerQuery.includes('more than') || lowerQuery.includes('greater than') || lowerQuery.includes('more expensive than')) {
+          matchedProperties = properties.filter(p => p.price > targetPrice);
+        } else {
+          // Default to approximate matching if no comparison operator
+          const tolerance = 0.1;
+          const minPrice = targetPrice * (1 - tolerance);
+          const maxPrice = targetPrice * (1 + tolerance);
+          matchedProperties = properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
+        }
+        
+        if (matchedProperties.length === 0) {
+          return `I couldn't find any properties with a price ${lowerQuery.includes('under') ? 'under' : lowerQuery.includes('above') ? 'above' : 'around'} $${targetPrice.toLocaleString()}. Try a different price range or ask about other property features.`;
+        }
+        
+        // Display filtered properties on the map and table
+        const propertiesStr = matchedProperties.map(p => 
+          `<a href="#" class="text-primary hover:underline" data-property-id="${p.id}">${p.name}</a> ($${p.price.toLocaleString()})`
+        ).join(', ');
+        
+        // Update the UI to show these properties
+        onShowPOIs([]);  // Clear any POIs
+        
+        toast({
+          title: `Found ${matchedProperties.length} properties`,
+          description: `Properties with price ${lowerQuery.includes('under') ? 'under' : lowerQuery.includes('above') ? 'above' : 'around'} $${targetPrice.toLocaleString()}`,
+        });
+        
+        return `I found ${matchedProperties.length} properties with price ${lowerQuery.includes('under') ? 'under' : lowerQuery.includes('above') ? 'above' : 'around'} $${targetPrice.toLocaleString()}: ${propertiesStr}. Click on any property to see details.`;
       }
     }
     
@@ -410,7 +508,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       return `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• 'Find coffee shops within 2 miles of this property'\n• 'Where is the nearest restaurant to this property?'\n• 'Show me FedEx locations around this property'\n\nOr you can select a different property with 'Use property [name]'.`;
     }
     
-    return "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Use property Gateway Logistics Center'\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'\n• 'Where is the nearest restaurant?'\n• 'What types of points of interest are available?'";
+    return "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Show me properties where size is 108,000 sq ft'\n• 'Find properties with price under $5 million'\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'\n• 'Where is the nearest restaurant?'";
   };
 
   const formatSize = (size: number): string => {

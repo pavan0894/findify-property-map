@@ -35,6 +35,14 @@ const Index = () => {
   // Show POIs on map (called from Chatbot)
   const handleShowPOIs = (pois: POI[]) => {
     setActivePOIs(pois);
+    if (mapRef.current) {
+      mapRef.current.showPOIs(pois);
+    }
+  };
+  
+  // Update filtered properties
+  const updateFilteredProperties = (properties: Property[]) => {
+    setFilteredProperties(properties);
   };
   
   // Close property details
@@ -61,7 +69,7 @@ const Index = () => {
             <MobileSearchOverlay />
             <Map
               properties={properties}
-              filteredProperties={properties}
+              filteredProperties={filteredProperties}
               pointsOfInterest={pointsOfInterest}
               selectedPOI={selectedPOI}
               selectedProperty={selectedProperty}
@@ -73,7 +81,7 @@ const Index = () => {
           
           <div className="flex-1 overflow-auto p-4">
             <PropertyTable
-              properties={properties}
+              properties={filteredProperties}
               onSelectProperty={handleSelectProperty}
               selectedProperty={selectedProperty}
             />
@@ -130,7 +138,7 @@ const Index = () => {
                   <div className="relative h-full">
                     <Map
                       properties={properties}
-                      filteredProperties={properties}
+                      filteredProperties={filteredProperties}
                       pointsOfInterest={pointsOfInterest}
                       selectedPOI={selectedPOI}
                       selectedProperty={selectedProperty}
@@ -147,7 +155,7 @@ const Index = () => {
                 <ResizablePanel defaultSize={40}>
                   <div className="h-full overflow-auto p-4">
                     <PropertyTable
-                      properties={properties}
+                      properties={filteredProperties}
                       onSelectProperty={handleSelectProperty}
                       selectedProperty={selectedProperty}
                     />
