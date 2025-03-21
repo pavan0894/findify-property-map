@@ -130,7 +130,7 @@ const Index = () => {
           />
         </div>
         
-        {/* Table section */}
+        {/* Property Table section */}
         <div className="flex-1 overflow-auto p-4">
           <PropertyTable
             properties={filteredProperties}
