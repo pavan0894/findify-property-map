@@ -23,16 +23,11 @@ const MapInitializer = ({
   const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
-    if (!mapContainer.current || mapRef.current || isInitialized) return;
+    // Only initialize once, and only if we have a container and token
+    if (!mapContainer.current || mapRef.current || isInitialized || !mapToken) return;
 
     try {
       console.log('Initializing map with token:', mapToken);
-      
-      // Verify the mapContainer is ready
-      if (!mapContainer.current) {
-        console.error('Map container ref is not available yet');
-        return;
-      }
       
       // Set Mapbox token
       mapboxgl.accessToken = mapToken;
@@ -52,19 +47,17 @@ const MapInitializer = ({
       });
       
       mapRef.current = mapInstance;
-      setIsInitialized(true);
       
       // Add controls
       mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
       mapInstance.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
 
-      // Wait for map to be fully loaded
+      // Wait for map to be fully loaded before notifying
       mapInstance.on('load', () => {
         console.log('Map loaded successfully');
-        if (mapRef.current) {
-          onMapReady(mapRef.current);
-          fitMapToProperties(mapRef.current, properties);
-        }
+        setIsInitialized(true);
+        onMapReady(mapInstance);
+        fitMapToProperties(mapInstance, properties);
       });
       
       // Handle errors
@@ -84,7 +77,7 @@ const MapInitializer = ({
       console.error('Error initializing map:', error);
       onMapError('Error initializing map. Please check Mapbox API status.');
     }
-  }, [mapToken, properties, mapContainer, onMapReady, onMapError, isInitialized]);
+  }, [mapToken, properties, mapContainer, onMapReady, onMapError]);
   
   return null;
 };

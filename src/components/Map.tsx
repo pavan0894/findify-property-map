@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
@@ -35,22 +35,22 @@ const Map = ({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  const handleMapReady = (mapInstance: mapboxgl.Map) => {
+  const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
     setMap(mapInstance);
     setMapLoaded(true);
     setMapError(null);
-  };
+  }, []);
 
-  const handleMapError = (error: string) => {
+  const handleMapError = useCallback((error: string) => {
     console.error('Map initialization error:', error);
     setMapError(error);
-  };
+  }, []);
 
-  const handleResetView = () => {
+  const handleResetView = useCallback(() => {
     if (!map) return;
     fitMapToProperties(map, properties);
-  };
+  }, [map, properties]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
@@ -64,21 +64,25 @@ const Map = ({
         onMapError={handleMapError}
       />
       
-      {mapLoaded && map && properties.map(property => (
-        <MapMarker
-          key={property.id}
-          property={property}
-          map={map}
-          isFiltered={filteredProperties.some(fp => fp.id === property.id)}
-          onSelectProperty={onSelectProperty}
-        />
-      ))}
-      
-      {mapLoaded && map && selectedProperty && (
-        <PropertyPopup
-          property={selectedProperty}
-          map={map}
-        />
+      {mapLoaded && map && (
+        <>
+          {properties.map(property => (
+            <MapMarker
+              key={property.id}
+              property={property}
+              map={map}
+              isFiltered={filteredProperties.some(fp => fp.id === property.id)}
+              onSelectProperty={onSelectProperty}
+            />
+          ))}
+          
+          {selectedProperty && (
+            <PropertyPopup
+              property={selectedProperty}
+              map={map}
+            />
+          )}
+        </>
       )}
       
       {mapError && (

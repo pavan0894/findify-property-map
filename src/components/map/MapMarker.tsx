@@ -15,35 +15,37 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   
   useEffect(() => {
-    // Make sure map is defined and fully loaded before adding markers
-    if (!map || !map.loaded()) {
-      console.log('Map not ready yet for property:', property.id);
-      
-      // Wait for map to load before adding marker
+    // Make sure map exists and is fully loaded
+    if (!map) return;
+    
+    // If marker already exists, remove it first to prevent duplicates
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+    
+    // Only create marker when map is fully loaded
+    if (!map.loaded()) {
       const onMapLoad = () => {
         createAndAddMarker();
         map.off('load', onMapLoad);
       };
-      
-      // If map exists but isn't loaded yet, wait for the load event
-      if (map) {
-        map.on('load', onMapLoad);
-      }
-      
+      map.on('load', onMapLoad);
       return;
     }
     
-    // Create and add marker if map is already loaded
     createAndAddMarker();
     
     return () => {
       if (markerRef.current) {
         markerRef.current.remove();
+        markerRef.current = null;
       }
     };
     
     function createAndAddMarker() {
       try {
+        // Create marker element
         const markerEl = document.createElement('div');
         markerEl.className = 'flex items-center justify-center';
         
@@ -61,23 +63,22 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         
         markerEl.appendChild(icon);
         
+        // Create the marker
         const marker = new mapboxgl.Marker({
           element: markerEl,
           anchor: 'bottom',
-        })
-          .setLngLat([property.longitude, property.latitude]);
+        }).setLngLat([property.longitude, property.latitude]);
         
-        // Only add to map if the map is valid and the container exists
+        // Check that map is valid before adding marker
         if (map && map.getContainer()) {
           marker.addTo(map);
           
+          // Add click event
           marker.getElement().addEventListener('click', () => {
             onSelectProperty(property);
           });
           
           markerRef.current = marker;
-        } else {
-          console.warn('Map or container not available for marker', property.id);
         }
       } catch (error) {
         console.error('Error creating marker for property', property.id, error);
