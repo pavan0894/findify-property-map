@@ -27,21 +27,39 @@ interface Message {
   timestamp: Date;
 }
 
+const STORAGE_KEY = 'property-assistant-chat';
+
 const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedChat = localStorage.getItem(STORAGE_KEY);
+    if (savedChat) {
+      try {
+        const parsedChat = JSON.parse(savedChat, (key, value) => {
+          if (key === 'timestamp') return new Date(value);
+          return value;
+        });
+        return parsedChat;
+      } catch (e) {
+        console.error('Error loading chat history:', e);
+      }
+    }
+    return [{
       id: '1',
       content: "Hello! I'm your property assistant. Ask me about warehouses or points of interest nearby.",
       sender: 'bot',
       timestamp: new Date()
-    }
-  ]);
+    }];
+  });
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -85,6 +103,18 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
     if (e.key === 'Enter') {
       handleSendMessage();
     }
+  };
+
+  const handleCloseChat = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setMessages([{
+      id: '1',
+      content: "Hello! I'm your property assistant. Ask me about warehouses or points of interest nearby.",
+      sender: 'bot',
+      timestamp: new Date()
+    }]);
+    setActiveProperty(null);
+    setIsOpen(false);
   };
 
   const processUserQuery = (query: string): string => {
@@ -399,7 +429,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-full hover:bg-secondary"
-                onClick={handleToggleChat}
+                onClick={handleCloseChat}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -489,4 +519,3 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
 };
 
 export default Chatbot;
-
