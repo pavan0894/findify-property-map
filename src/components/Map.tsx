@@ -227,44 +227,47 @@ const Map = ({
 
     // Add a circle around the selected POI
     const radiusKm = maxDistance * 1.60934; // Convert miles to km
-    const center = [selectedPOI.longitude, selectedPOI.latitude];
+    const center: [number, number] = [selectedPOI.longitude, selectedPOI.latitude];
 
     // Create a circle source
-    const circleSource = {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Point',
-          coordinates: center
-        }
+    if (map.current.loaded()) {
+      try {
+        map.current.addSource('proximity-circle', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Point',
+              coordinates: center
+            }
+          }
+        });
+
+        // Add a layer for the circle
+        map.current.addLayer({
+          id: 'proximity-circle',
+          type: 'circle',
+          source: 'proximity-circle',
+          paint: {
+            'circle-radius': {
+              stops: [
+                [0, 0],
+                [20, radiusKm * 1000] // Convert km to meters
+              ],
+              base: 2
+            },
+            'circle-color': 'rgba(0, 119, 255, 0.1)',
+            'circle-stroke-color': 'rgba(0, 119, 255, 0.5)',
+            'circle-stroke-width': 1
+          }
+        });
+
+        circleRef.current = true;
+      } catch (err) {
+        console.error("Error adding circle:", err);
       }
-    };
-
-    // Add the source to the map
-    map.current.addSource('proximity-circle', circleSource);
-
-    // Add a layer for the circle
-    map.current.addLayer({
-      id: 'proximity-circle',
-      type: 'circle',
-      source: 'proximity-circle',
-      paint: {
-        'circle-radius': {
-          stops: [
-            [0, 0],
-            [20, radiusKm * 1000] // Convert km to meters
-          ],
-          base: 2
-        },
-        'circle-color': 'rgba(0, 119, 255, 0.1)',
-        'circle-stroke-color': 'rgba(0, 119, 255, 0.5)',
-        'circle-stroke-width': 1
-      }
-    });
-
-    circleRef.current = true;
+    }
 
     // Highlight the selected POI marker
     if (poiMarkersRef.current[selectedPOI.id]) {
@@ -278,7 +281,7 @@ const Map = ({
 
     // Fly to the POI
     map.current.flyTo({
-      center,
+      center: center,
       zoom: 13,
       duration: 1500
     });

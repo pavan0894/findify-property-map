@@ -2,8 +2,8 @@
 import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
-// Default token - in production this should be replaced with an environment variable
-export const MAPBOX_TOKEN = 'pk.eyJ1IjoiZGVtby11c2VyIiwiYSI6ImNreWFteG96djBhMXAydm4xM29zZzR2aHIifQ.nAHLWO8H_jlcAP2_h1LsOQ';
+// Update to use a valid public Mapbox token
+export const MAPBOX_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
 
 // Calculate distance between two points using the Haversine formula
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

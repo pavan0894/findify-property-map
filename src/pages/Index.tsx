@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { properties, pointsOfInterest, POI, Property } from '@/utils/data';
-import { filterPropertiesByPOIDistance } from '@/utils/mapUtils';
+import { filterPropertiesByPOIDistance, MAPBOX_TOKEN } from '@/utils/mapUtils';
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Navbar from '@/components/Navbar';
 import Map from '@/components/Map';
+import MapTokenInput from '@/components/MapTokenInput';
 import SearchFilters from '@/components/SearchFilters';
 import PropertyCard from '@/components/PropertyCard';
 import PropertyDetails from '@/components/PropertyDetails';
@@ -23,9 +24,18 @@ const Index = () => {
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
+  const [mapToken, setMapToken] = useState(MAPBOX_TOKEN);
   
   // Extract unique POI types
   const poiTypes = Array.from(new Set(pointsOfInterest.map(poi => poi.type)));
+  
+  // Check for saved token in localStorage
+  useEffect(() => {
+    const savedToken = localStorage.getItem('mapbox_token');
+    if (savedToken) {
+      setMapToken(savedToken);
+    }
+  }, []);
   
   // Filter properties based on search, POI types, and distance
   useEffect(() => {
@@ -95,6 +105,7 @@ const Index = () => {
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetContent side="left" className="w-80 p-0 pt-4">
                 <div className="p-4">
+                  <MapTokenInput onTokenChange={setMapToken} />
                   <SearchFilters
                     poiTypes={poiTypes}
                     selectedPOITypes={selectedPOITypes}
@@ -134,6 +145,7 @@ const Index = () => {
           {!isMobile && (
             <div className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 overflow-hidden flex flex-col h-[calc(100vh-64px)]`}>
               <div className="p-6">
+                <MapTokenInput onTokenChange={setMapToken} />
                 <SearchFilters
                   poiTypes={poiTypes}
                   selectedPOITypes={selectedPOITypes}
