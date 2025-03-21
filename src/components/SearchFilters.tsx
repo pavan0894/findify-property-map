@@ -25,14 +25,7 @@ const SearchFilters = ({
 
   const FiltersContent = () => (
     <div className="space-y-6 w-full animate-fade-in">
-      <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
-        <Button 
-          variant="outline" 
-          className="w-full rounded-full"
-        >
-          Clear All
-        </Button>
-      </div>
+      {/* Empty filters content now that Clear All button is removed */}
     </div>
   );
 
