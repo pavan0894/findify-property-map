@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -5,6 +6,7 @@ import { Property, POI } from '@/utils/data';
 import { MAPBOX_TOKEN, calculateCenter, fitMapToProperties, CBRE_GREEN } from '@/utils/mapUtils';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
+import MapTokenInput from '@/components/MapTokenInput';
 
 interface MapProps {
   properties: Property[];
@@ -29,40 +31,55 @@ const Map = ({
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const [mapToken, setMapToken] = useState<string>(
+    localStorage.getItem('mapbox_token') || MAPBOX_TOKEN
+  );
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    const initialCenter = calculateCenter(properties);
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: initialCenter,
-      zoom: 10,
-      pitch: 0,
-      attributionControl: false,
-      renderWorldCopies: false
-    });
+    try {
+      mapboxgl.accessToken = mapToken;
+      
+      const initialCenter = calculateCenter(properties);
+      
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: initialCenter,
+        zoom: 10,
+        pitch: 0,
+        attributionControl: false,
+        renderWorldCopies: false
+      });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-    map.current.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+      map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      map.current.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
 
-    map.current.on('load', () => {
-      console.log('Map loaded successfully');
-      setMapLoaded(true);
-      fitMapToProperties(map.current!, properties);
-    });
+      map.current.on('load', () => {
+        console.log('Map loaded successfully');
+        setMapLoaded(true);
+        setMapError(null);
+        fitMapToProperties(map.current!, properties);
+      });
+      
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
+        setMapError('Error loading map. Please check your Mapbox token.');
+      });
 
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, []); // Empty dependency array ensures this runs once
+      return () => {
+        if (map.current) {
+          map.current.remove();
+          map.current = null;
+        }
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Error initializing map. Please check your Mapbox token.');
+    }
+  }, [mapToken]); // Now depends on mapToken to reinitialize when token changes
 
   useEffect(() => {
     if (!map.current || !mapLoaded) {
@@ -201,9 +218,30 @@ const Map = ({
     fitMapToProperties(map.current, properties);
   };
 
+  const handleTokenChange = (token: string) => {
+    localStorage.setItem('mapbox_token', token);
+    setMapToken(token);
+    
+    // Need to reload the map with the new token
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    setMapLoaded(false);
+  };
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
       <div ref={mapContainer} className="absolute inset-0 bg-gray-100" />
+      
+      {mapError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 bg-opacity-90 p-6 z-10">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
+            <p className="text-red-500 mb-4">{mapError}</p>
+            <MapTokenInput onTokenChange={handleTokenChange} />
+          </div>
+        </div>
+      )}
       
       <Button
         size="sm"
@@ -214,6 +252,12 @@ const Map = ({
         <MapPin className="h-4 w-4" />
         Reset View
       </Button>
+      
+      {!mapError && (
+        <div className="absolute top-3 right-3 z-10 max-w-xs">
+          <MapTokenInput onTokenChange={handleTokenChange} />
+        </div>
+      )}
     </div>
   );
 };
