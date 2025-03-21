@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
-import { MAPBOX_TOKEN, calculateCenter, fitMapToProperties, CBRE_GREEN } from '@/utils/mapUtils';
+import { getMapboxToken, calculateCenter, fitMapToProperties, CBRE_GREEN } from '@/utils/mapUtils';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
 
@@ -35,8 +35,9 @@ const Map = ({
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-
+    // Use the token from utils
+    mapboxgl.accessToken = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Iya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
+    
     const initialCenter = calculateCenter(properties);
     
     map.current = new mapboxgl.Map({
@@ -54,6 +55,7 @@ const Map = ({
 
     // Add custom animations on load
     map.current.on('load', () => {
+      console.log('Map loaded successfully');
       setMapLoaded(true);
       fitMapToProperties(map.current!, properties);
     });
@@ -66,15 +68,23 @@ const Map = ({
     };
   }, []); // Empty dependency array ensures this runs once
 
-  // Update markers when properties change - show ALL properties on the map
+  // Update markers when properties or filtered properties change
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded) {
+      console.log('Map not ready for markers', { mapRef: !!map.current, mapLoaded });
+      return;
+    }
+    
+    console.log('Updating markers', { 
+      propertiesCount: properties.length, 
+      filteredCount: filteredProperties.length 
+    });
     
     // Clear previous markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
-    // Add markers for ALL properties, not just filtered ones
+    // Add markers for ALL properties
     properties.forEach(property => {
       const markerEl = document.createElement('div');
       markerEl.className = 'flex items-center justify-center';
@@ -112,6 +122,8 @@ const Map = ({
       
       markersRef.current[property.id] = marker;
     });
+
+    console.log('Markers created:', Object.keys(markersRef.current).length);
 
   }, [properties, filteredProperties, onSelectProperty, mapLoaded]);
 
