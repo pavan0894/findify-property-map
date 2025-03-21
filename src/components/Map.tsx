@@ -94,8 +94,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style with proper TypeScript syntax for mapbox-gl
-    map.setStyle(style, { diff: false });
+    // Apply new style with correct TypeScript syntax
+    map.setStyle(style);
     
     // Re-add event listeners after style change
     map.on('style.load', () => {
