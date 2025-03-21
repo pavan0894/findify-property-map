@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { properties, pointsOfInterest, POI, Property } from '@/utils/data';
-import { filterPropertiesByPOIDistance } from '@/utils/mapUtils';
 import MainLayout from '@/components/layout/MainLayout';
 import Map, { MapRef } from '@/components/Map';
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
@@ -12,34 +11,12 @@ import SearchFilters from '@/components/SearchFilters';
 
 const Index = () => {
   const isMobile = useIsMobile();
-  const [selectedPOITypes, setSelectedPOITypes] = useState<string[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>(properties);
-  const [maxDistance, setMaxDistance] = useState(5); // in miles
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
   const mapRef = useRef<MapRef>(null);
-  
-  // Extract unique POI types
-  const poiTypes = Array.from(new Set(pointsOfInterest.map(poi => poi.type)));
-  
-  // Filter properties based on POI types and distance
-  useEffect(() => {
-    let result = [...properties];
-    
-    // Filter by distance to selected POI types
-    if (selectedPOITypes.length > 0) {
-      result = filterPropertiesByPOIDistance(
-        result,
-        pointsOfInterest,
-        selectedPOITypes,
-        maxDistance * 1.60934 // Convert miles to km
-      );
-    }
-    
-    setFilteredProperties(result);
-  }, [selectedPOITypes, maxDistance]);
   
   // Handle property selection
   const handleSelectProperty = (property: Property) => {
@@ -50,7 +27,6 @@ const Index = () => {
   // Handle POI selection
   const handleSelectPOI = (poi: POI) => {
     setSelectedPOI(poi);
-    setSelectedPOITypes([poi.type]);
     setShowPropertyDetails(false);
   };
   
@@ -75,37 +51,25 @@ const Index = () => {
       <div className="flex flex-col h-full">
         {/* Top section with filters */}
         <div className="p-4 bg-gray-50">
-          <SearchFilters
-            poiTypes={poiTypes}
-            selectedPOITypes={selectedPOITypes}
-            setSelectedPOITypes={setSelectedPOITypes}
-            maxDistance={maxDistance}
-            setMaxDistance={setMaxDistance}
-          />
+          <SearchFilters />
         </div>
 
         {/* Map container */}
         <div className="h-[50vh] relative">
           {/* Mobile Search Overlay */}
           {isMobile && (
-            <MobileSearchOverlay
-              poiTypes={poiTypes}
-              selectedPOITypes={selectedPOITypes}
-              setSelectedPOITypes={setSelectedPOITypes}
-              maxDistance={maxDistance}
-              setMaxDistance={setMaxDistance}
-            />
+            <MobileSearchOverlay />
           )}
           
           {/* Map */}
           <Map
             properties={properties}
-            filteredProperties={filteredProperties}
+            filteredProperties={properties}
             pointsOfInterest={pointsOfInterest}
             selectedPOI={selectedPOI}
             selectedProperty={selectedProperty}
             onSelectProperty={handleSelectProperty}
-            maxDistance={maxDistance}
+            maxDistance={5}
             ref={mapRef}
           />
         </div>
@@ -113,7 +77,7 @@ const Index = () => {
         {/* Property Table section */}
         <div className="flex-1 overflow-auto p-4">
           <PropertyTable
-            properties={filteredProperties}
+            properties={properties}
             onSelectProperty={handleSelectProperty}
             selectedProperty={selectedProperty}
           />

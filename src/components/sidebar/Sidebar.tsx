@@ -11,11 +11,6 @@ import PropertyList from '@/components/property/PropertyList';
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
-  poiTypes: string[];
-  selectedPOITypes: string[];
-  setSelectedPOITypes: React.Dispatch<React.SetStateAction<string[]>>;
-  maxDistance: number;
-  setMaxDistance: React.Dispatch<React.SetStateAction<number>>;
   filteredProperties: Property[];
   selectedProperty: Property | null;
   onSelectProperty: (property: Property) => void;
@@ -24,11 +19,6 @@ interface SidebarProps {
 const Sidebar = ({
   sidebarOpen,
   setSidebarOpen,
-  poiTypes,
-  selectedPOITypes,
-  setSelectedPOITypes,
-  maxDistance,
-  setMaxDistance,
   filteredProperties,
   selectedProperty,
   onSelectProperty
@@ -40,13 +30,7 @@ const Sidebar = ({
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-80 p-0 pt-4">
           <div className="p-4">
-            <SearchFilters
-              poiTypes={poiTypes}
-              selectedPOITypes={selectedPOITypes}
-              setSelectedPOITypes={setSelectedPOITypes}
-              maxDistance={maxDistance}
-              setMaxDistance={setMaxDistance}
-            />
+            <SearchFilters />
           </div>
           
           <Separator />
@@ -67,13 +51,7 @@ const Sidebar = ({
   return (
     <div className={`${sidebarOpen ? 'w-96' : 'w-0'} transition-all duration-300 overflow-hidden flex flex-col h-[calc(100vh-64px)]`}>
       <div className="p-6">
-        <SearchFilters
-          poiTypes={poiTypes}
-          selectedPOITypes={selectedPOITypes}
-          setSelectedPOITypes={setSelectedPOITypes}
-          maxDistance={maxDistance}
-          setMaxDistance={setMaxDistance}
-        />
+        <SearchFilters />
       </div>
       
       <Separator />

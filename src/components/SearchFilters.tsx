@@ -1,15 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Sliders, 
-  Package,
-  Box,
-  PackageCheck,
-  Plane,
   X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { 
   Popover,
@@ -19,114 +14,24 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SearchFiltersProps {
-  poiTypes: string[];
-  selectedPOITypes: string[];
-  setSelectedPOITypes: (types: string[]) => void;
-  maxDistance: number;
-  setMaxDistance: (distance: number) => void;
-  onSearch?: (searchQuery: string) => void;
   className?: string;
 }
 
-interface POITypeOption {
-  type: string;
-  icon: any;
-}
-
-const poiTypeOptions: POITypeOption[] = [
-  { type: 'FedEx', icon: Package },
-  { type: 'UPS', icon: Box },
-  { type: 'Shipping Center', icon: PackageCheck },
-  { type: 'Airport', icon: Plane }
-];
-
 const SearchFilters = ({
-  poiTypes,
-  selectedPOITypes,
-  setSelectedPOITypes,
-  maxDistance,
-  setMaxDistance,
   className = ''
 }: SearchFiltersProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const togglePOIType = (type: string) => {
-    if (selectedPOITypes.includes(type)) {
-      setSelectedPOITypes(selectedPOITypes.filter(t => t !== type));
-    } else {
-      setSelectedPOITypes([...selectedPOITypes, type]);
-    }
-  };
-
-  const clearFilters = () => {
-    setSelectedPOITypes([]);
-    setMaxDistance(5);
-  };
-
   const FiltersContent = () => (
     <div className="space-y-6 w-full animate-fade-in">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Points of Interest</h3>
-          {selectedPOITypes.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setSelectedPOITypes([])} 
-              className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Clear
-            </Button>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {poiTypeOptions.map((poiOption) => (
-            <Button
-              key={poiOption.type}
-              variant={selectedPOITypes.includes(poiOption.type) ? "default" : "outline"}
-              size="sm"
-              onClick={() => togglePOIType(poiOption.type)}
-              className={`justify-start gap-2 h-auto px-3 py-2 text-xs font-normal transition-all ${
-                selectedPOITypes.includes(poiOption.type) 
-                  ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20" 
-                  : "hover:bg-secondary/80"
-              }`}
-            >
-              <poiOption.icon className="h-3.5 w-3.5" />
-              {poiOption.type}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-medium">Max Distance</h3>
-          <span className="text-xs font-medium bg-secondary rounded-full px-2 py-0.5">
-            {maxDistance} miles
-          </span>
-        </div>
-        <Slider
-          value={[maxDistance]}
-          min={0.5}
-          max={10}
-          step={0.5}
-          onValueChange={(values) => setMaxDistance(values[0])}
-          className="py-1"
-        />
-      </div>
-
       <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
-        {(selectedPOITypes.length > 0 || maxDistance !== 5) && (
-          <Button 
-            variant="outline" 
-            onClick={clearFilters} 
-            className="w-full rounded-full"
-          >
-            Reset Filters
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          className="w-full rounded-full"
+        >
+          Clear All
+        </Button>
       </div>
     </div>
   );
@@ -143,9 +48,6 @@ const SearchFilters = ({
                 className="absolute right-1.5 h-8 w-8 text-muted-foreground hover:text-foreground"
               >
                 <Sliders className="h-4 w-4" />
-                {(selectedPOITypes.length > 0 || maxDistance !== 5) && (
-                  <span className="absolute top-0 right-0.5 h-2 w-2 rounded-full bg-primary" />
-                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-72 p-4" align="end">
@@ -153,24 +55,6 @@ const SearchFilters = ({
             </PopoverContent>
           </Popover>
         </div>
-        
-        {selectedPOITypes.length > 0 && (
-          <div className="flex flex-wrap gap-2 pb-2 animate-fade-in overflow-x-auto no-scrollbar">
-            {selectedPOITypes.map(type => (
-              <Badge 
-                key={type} 
-                variant="secondary"
-                className="h-6 rounded-full px-2 py-0 flex items-center gap-1 text-xs bg-secondary/80"
-              >
-                {type}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => togglePOIType(type)}
-                />
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
