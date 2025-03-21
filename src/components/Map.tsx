@@ -3,7 +3,7 @@ import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperat
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
-import { MAPBOX_TOKEN, fitMapToProperties } from '@/utils/mapUtils';
+import { MAPBOX_TOKEN, fitMapToProperties, findPOIsNearProperty } from '@/utils/mapUtils';
 import MapTokenInput from '@/components/MapTokenInput';
 import MapInitializer from '@/components/map/MapInitializer';
 import MapMarker from '@/components/map/MapMarker';
@@ -72,6 +72,23 @@ const Map = forwardRef<MapRef, MapProps>(({
       setActivePOIs(prev => [...prev, selectedPOI]);
     }
   }, [selectedPOI]);
+
+  // When selectedProperty changes, show nearby POIs
+  useEffect(() => {
+    if (selectedProperty && map) {
+      // Find POIs near this property
+      const nearbyPOIs = findPOIsNearProperty(
+        pointsOfInterest,
+        selectedProperty,
+        maxDistance * 1.60934 // Convert miles to km
+      );
+      
+      // Update active POIs
+      setActivePOIs(nearbyPOIs);
+      
+      console.log(`Found ${nearbyPOIs.length} POIs near selected property`);
+    }
+  }, [selectedProperty, pointsOfInterest, maxDistance, map]);
 
   // Debug information
   useEffect(() => {
