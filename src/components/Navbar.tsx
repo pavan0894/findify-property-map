@@ -22,11 +22,7 @@ const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
           </h1>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90">
-            Get Started
-          </Button>
-          
+        <div className="flex items-center">
           {isMobile && (
             <Button 
               variant="ghost" 
