@@ -77,8 +77,7 @@ const Map = ({
     // Add markers for ALL properties, not just filtered ones
     properties.forEach(property => {
       const markerEl = document.createElement('div');
-      markerEl.className = 'property-marker';
-      markerEl.style.position = 'relative';
+      markerEl.className = 'flex items-center justify-center';
       
       const icon = document.createElement('div');
       
@@ -87,10 +86,10 @@ const Map = ({
       
       // Style based on whether it's in the filtered list
       if (isInFilteredList) {
-        icon.className = 'flex items-center justify-center h-8 w-8 text-white rounded-full shadow-lg';
+        icon.className = 'h-8 w-8 text-white rounded-full shadow-lg flex items-center justify-center';
         icon.style.backgroundColor = CBRE_GREEN;
       } else {
-        icon.className = 'flex items-center justify-center h-8 w-8 text-white rounded-full shadow-md opacity-60';
+        icon.className = 'h-8 w-8 text-white rounded-full shadow-md opacity-60 flex items-center justify-center';
         icon.style.backgroundColor = '#999999';
       }
       
@@ -98,11 +97,10 @@ const Map = ({
       
       markerEl.appendChild(icon);
       
-      // Create marker with explicit pixel offsets to prevent bouncing
+      // Create marker with fixed positioning
       const marker = new mapboxgl.Marker({
         element: markerEl,
-        anchor: 'center',
-        offset: [0, 0], // Ensures consistent positioning
+        anchor: 'bottom', // This ensures the bottom center of the marker is at the coordinate
       })
         .setLngLat([property.longitude, property.latitude])
         .addTo(map.current!);
@@ -184,7 +182,8 @@ const Map = ({
       const popup = new mapboxgl.Popup({
         closeButton: true,
         closeOnClick: false,
-        maxWidth: '300px'
+        maxWidth: '300px',
+        anchor: 'bottom' // Anchor popup to bottom of marker
       })
         .setLngLat([selectedProperty.longitude, selectedProperty.latitude])
         .setDOMContent(popupContent)
