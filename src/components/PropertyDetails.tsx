@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Property, POI, formatPrice, formatSize, findPOIsNearProperty } from '@/utils/data';
+import { Property, POI, formatPrice, formatSize } from '@/utils/data';
 import { calculateDistance, kmToMiles } from '@/utils/mapUtils';
 import { 
   X, 
   Map, 
   DollarSign, 
-  SquareFoot, 
+  SquareCode, 
   CalendarDays, 
   MapPin, 
   Check,
@@ -47,6 +47,23 @@ const PropertyDetails = ({
       setNearbyPOIs(poiNearby);
     }
   }, [property, allPOIs]);
+  
+  // Define the missing utility function locally
+  const findPOIsNearProperty = (
+    pois: POI[],
+    property: Property,
+    maxDistanceKm: number
+  ): POI[] => {
+    return pois.filter(poi => {
+      const distance = calculateDistance(
+        property.latitude,
+        property.longitude,
+        poi.latitude,
+        poi.longitude
+      );
+      return distance <= maxDistanceKm;
+    });
+  };
   
   if (!property) return null;
   
@@ -94,7 +111,7 @@ const PropertyDetails = ({
             </div>
             
             <div className="flex flex-col items-center justify-center p-3 bg-secondary/50 rounded-lg">
-              <SquareFoot className="h-5 w-5 text-primary mb-1" />
+              <SquareCode className="h-5 w-5 text-primary mb-1" />
               <p className="text-sm font-medium">{formatSize(property.size)}</p>
               <p className="text-xs text-muted-foreground">Size</p>
             </div>

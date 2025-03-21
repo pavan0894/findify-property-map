@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Property, formatPrice, formatSize } from '@/utils/data';
-import { Map, DollarSign, SquareFoot, CalendarDays, MapPin } from 'lucide-react';
+import { Map, DollarSign, SquareCode, CalendarDays, MapPin } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
@@ -68,7 +68,7 @@ const PropertyCard = ({
           
           <div className="flex items-center gap-1.5">
             <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10">
-              <SquareFoot className="h-3.5 w-3.5 text-primary" />
+              <SquareCode className="h-3.5 w-3.5 text-primary" />
             </div>
             <div>
               <p className={`font-medium leading-none ${compact ? 'text-xs' : 'text-sm'}`}>
