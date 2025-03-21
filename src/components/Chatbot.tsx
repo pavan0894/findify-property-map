@@ -302,7 +302,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           const targetPrice = parseFloat(numericPart) * multiplier;
           
           if (!isNaN(targetPrice)) {
-            const comparisonType = "around";
+            let comparisonType = "around";
             if (lowerQuery.includes("under") || lowerQuery.includes("below") || lowerQuery.includes("less than")) {
               comparisonType = "below";
             } else if (lowerQuery.includes("above") || lowerQuery.includes("over") || lowerQuery.includes("more than")) {

@@ -96,7 +96,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     map.off('style.load');
     
     // Apply new style with the correct arguments required by mapbox-gl
-    map.setStyle(style, { diff: false });
+    // Updated to use correct parameters for setStyle
+    map.setStyle(style);
     
     // Re-add event listeners after style change
     map.on('style.load', () => {
