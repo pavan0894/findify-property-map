@@ -7,16 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Navbar from '@/components/Navbar';
-import Map from '@/components/Map';
+import Map, { MapRef } from '@/components/Map';
 import SearchFilters from '@/components/SearchFilters';
 import PropertyCard from '@/components/PropertyCard';
 import PropertyDetails from '@/components/PropertyDetails';
 import Chatbot from '@/components/Chatbot';
-
-interface MapRef {
-  clearPOIs: () => void;
-  showPOIs: (pois: POI[]) => void;
-}
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -29,7 +24,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
-  const mapRef = useRef<Map>(null);
+  const mapRef = useRef<MapRef>(null);
   
   // Extract unique POI types
   const poiTypes = Array.from(new Set(pointsOfInterest.map(poi => poi.type)));
