@@ -94,8 +94,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style
-    map.setStyle(style);
+    // Apply new style with the required parameters
+    map.setStyle(style, { diff: false, transformCameraUpdate: true });
     
     // Re-add event listeners after style change
     map.on('style.load', () => {
