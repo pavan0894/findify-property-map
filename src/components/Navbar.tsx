@@ -1,15 +1,9 @@
 
 import React from 'react';
-import { Warehouse, Menu, X } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Warehouse } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-interface NavbarProps {
-  toggleSidebar: () => void;
-  sidebarOpen: boolean;
-}
-
-const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
+const Navbar = () => {
   const isMobile = useIsMobile();
 
   return (
@@ -20,19 +14,6 @@ const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
           <h1 className="text-xl font-semibold tracking-tight">
             Survey Agent
           </h1>
-        </div>
-        
-        <div className="flex items-center">
-          {isMobile && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleSidebar}
-              className="text-foreground"
-            >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          )}
         </div>
       </header>
     </div>
