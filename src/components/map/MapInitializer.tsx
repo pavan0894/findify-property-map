@@ -48,7 +48,8 @@ const MapInitializer = ({
         bearing: 0,
         attributionControl: false,
         renderWorldCopies: true,
-        antialias: true // Enable antialiasing for smoother rendering
+        antialias: true, // Enable antialiasing for smoother rendering
+        preserveDrawingBuffer: true // Helps with style changes
       });
       
       mapRef.current = mapInstance;
@@ -59,10 +60,11 @@ const MapInitializer = ({
 
       // Add 3D buildings layer when style is loaded
       mapInstance.on('style.load', () => {
-        console.log('Map style loaded:', mapInstance.getStyle().name);
+        const currentStyle = mapInstance.getStyle();
+        console.log('Map style loaded:', currentStyle.name);
         
         // Only add 3D buildings if we're not in satellite mode
-        if (!mapInstance.getStyle().name.includes('Satellite') && !mapInstance.getLayer('3d-buildings')) {
+        if (!currentStyle.name.includes('Satellite') && !mapInstance.getLayer('3d-buildings')) {
           mapInstance.addLayer({
             'id': '3d-buildings',
             'source': 'composite',

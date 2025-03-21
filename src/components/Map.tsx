@@ -64,31 +64,44 @@ const Map = forwardRef<MapRef, MapProps>(({
 
   const handleStyleChange = useCallback((style: string) => {
     if (!map) return;
+    console.log('Changing map style to:', style);
     setCurrentMapStyle(style);
-    map.setStyle(style);
-  }, [map]);
-
-  const handleToggle3D = useCallback(() => {
-    if (!map) return;
     
-    setIs3DEnabled(prev => {
-      const newValue = !prev;
+    // Clear previous event listeners to prevent duplicates
+    map.off('style.load');
+    
+    // Apply new style
+    map.setStyle(style);
+    
+    // Re-add event listeners after style change
+    map.on('style.load', () => {
+      console.log('Style loaded successfully:', map.getStyle().name);
       
-      if (newValue) {
-        // Enable 3D view
-        map.easeTo({
-          pitch: 45,
-          duration: 1000
-        });
-      } else {
-        // Disable 3D view
-        map.easeTo({
-          pitch: 0,
-          duration: 1000
+      // Only add 3D buildings if not in satellite mode
+      if (!map.getStyle().name.includes('Satellite') && !map.getLayer('3d-buildings')) {
+        map.addLayer({
+          'id': '3d-buildings',
+          'source': 'composite',
+          'source-layer': 'building',
+          'filter': ['==', 'extrude', 'true'],
+          'type': 'fill-extrusion',
+          'minzoom': 15,
+          'paint': {
+            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-height': [
+              'interpolate', ['linear'], ['zoom'],
+              15, 0,
+              16, ['get', 'height']
+            ],
+            'fill-extrusion-base': [
+              'interpolate', ['linear'], ['zoom'],
+              15, 0,
+              16, ['get', 'min_height']
+            ],
+            'fill-extrusion-opacity': 0.6
+          }
         });
       }
-      
-      return newValue;
     });
   }, [map]);
 
