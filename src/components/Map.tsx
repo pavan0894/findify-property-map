@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -31,9 +30,7 @@ const Map = ({
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
-  const [mapToken, setMapToken] = useState<string>(
-    localStorage.getItem('mapbox_token') || MAPBOX_TOKEN
-  );
+  const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,7 +63,7 @@ const Map = ({
       
       map.current.on('error', (e) => {
         console.error('Map error:', e);
-        setMapError('Error loading map. Please check your Mapbox token.');
+        setMapError('Error loading map. Please check Mapbox API status.');
       });
 
       return () => {
@@ -77,9 +74,9 @@ const Map = ({
       };
     } catch (error) {
       console.error('Error initializing map:', error);
-      setMapError('Error initializing map. Please check your Mapbox token.');
+      setMapError('Error initializing map. Please check Mapbox API status.');
     }
-  }, [mapToken]); // Now depends on mapToken to reinitialize when token changes
+  }, [mapToken, properties]); // Dependencies are mapToken and properties
 
   useEffect(() => {
     if (!map.current || !mapLoaded) {
@@ -218,18 +215,6 @@ const Map = ({
     fitMapToProperties(map.current, properties);
   };
 
-  const handleTokenChange = (token: string) => {
-    localStorage.setItem('mapbox_token', token);
-    setMapToken(token);
-    
-    // Need to reload the map with the new token
-    if (map.current) {
-      map.current.remove();
-      map.current = null;
-    }
-    setMapLoaded(false);
-  };
-
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
       <div ref={mapContainer} className="absolute inset-0 bg-gray-100" />
@@ -238,7 +223,7 @@ const Map = ({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 bg-opacity-90 p-6 z-10">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
             <p className="text-red-500 mb-4">{mapError}</p>
-            <MapTokenInput onTokenChange={handleTokenChange} />
+            <MapTokenInput onTokenChange={() => {}} />
           </div>
         </div>
       )}
@@ -255,7 +240,7 @@ const Map = ({
       
       {!mapError && (
         <div className="absolute top-3 right-3 z-10 max-w-xs">
-          <MapTokenInput onTokenChange={handleTokenChange} />
+          <MapTokenInput onTokenChange={() => {}} />
         </div>
       )}
     </div>
