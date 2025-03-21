@@ -89,9 +89,9 @@ export function fitMapToProperties(map: mapboxgl.Map, properties: Property[]) {
   });
   
   map.fitBounds(bounds, {
-    padding: 50,
-    maxZoom: 15,
-    duration: 2000 // Slower animation for smoother transition
+    padding: 80, // Increased padding to ensure all markers are visible
+    maxZoom: 12, // Lower maxZoom to ensure we don't zoom in too close
+    duration: 1500 // Slightly faster animation
   });
 }
 

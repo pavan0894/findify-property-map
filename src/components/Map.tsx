@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -69,7 +68,7 @@ const Map = ({
     };
   }, []); // Empty dependency array ensures this runs once
 
-  // Update markers when properties change
+  // Update markers when properties change - show ALL properties on the map
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
     
@@ -77,21 +76,31 @@ const Map = ({
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
-    // Add markers for filtered properties
-    filteredProperties.forEach(property => {
+    // Add markers for ALL properties, not just filtered ones
+    properties.forEach(property => {
       const markerEl = document.createElement('div');
       markerEl.className = 'marker-container';
       markerEl.style.position = 'relative';
       
       const icon = document.createElement('div');
-      icon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full shadow-md';
+      
+      // Check if this property is in the filtered list
+      const isInFilteredList = filteredProperties.some(fp => fp.id === property.id);
+      
+      // Style based on whether it's in the filtered list
+      if (isInFilteredList) {
+        icon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full shadow-md';
+      } else {
+        icon.className = 'flex items-center justify-center h-7 w-7 bg-gray-400 text-white rounded-full shadow-md opacity-50';
+      }
+      
       icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>';
       
       markerEl.appendChild(icon);
       
       const marker = new mapboxgl.Marker({
         element: markerEl,
-        anchor: 'center', // Change from 'bottom' to 'center' for better stability
+        anchor: 'center', // Keep center anchor for better stability
         pitchAlignment: 'map', // Keep pin aligned with map pitch
         rotationAlignment: 'map', // Keep pin aligned with map rotation
       })
@@ -106,40 +115,7 @@ const Map = ({
       markersRef.current[property.id] = marker;
     });
 
-    // Add markers for properties excluded from filtering with a different style
-    const excludedProperties = properties.filter(
-      property => !filteredProperties.some(fp => fp.id === property.id)
-    );
-
-    excludedProperties.forEach(property => {
-      const markerEl = document.createElement('div');
-      markerEl.className = 'marker-container';
-      markerEl.style.position = 'relative';
-      
-      const icon = document.createElement('div');
-      icon.className = 'flex items-center justify-center h-7 w-7 bg-gray-400 text-white rounded-full shadow-md opacity-50';
-      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>';
-      
-      markerEl.appendChild(icon);
-      
-      const marker = new mapboxgl.Marker({
-        element: markerEl,
-        anchor: 'center', // Change from 'bottom' to 'center' for better stability
-        pitchAlignment: 'map', // Keep pin aligned with map pitch
-        rotationAlignment: 'map', // Keep pin aligned with map rotation
-      })
-        .setLngLat([property.longitude, property.latitude])
-        .addTo(map.current!);
-      
-      // Add click handler
-      marker.getElement().addEventListener('click', () => {
-        onSelectProperty(property);
-      });
-      
-      markersRef.current[property.id] = marker;
-    });
-
-  }, [filteredProperties, onSelectProperty, mapLoaded]);
+  }, [properties, filteredProperties, onSelectProperty, mapLoaded]);
 
   // Handle POI markers
   useEffect(() => {
