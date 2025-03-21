@@ -62,6 +62,30 @@ const Map = forwardRef<MapRef, MapProps>(({
     fitMapToProperties(map, properties);
   }, [map, properties]);
 
+  const handleToggle3D = useCallback(() => {
+    if (!map) return;
+    
+    setIs3DEnabled(prev => {
+      const newValue = !prev;
+      
+      if (newValue) {
+        // Enable 3D view
+        map.easeTo({
+          pitch: 45,
+          duration: 1000
+        });
+      } else {
+        // Disable 3D view
+        map.easeTo({
+          pitch: 0,
+          duration: 1000
+        });
+      }
+      
+      return newValue;
+    });
+  }, [map]);
+
   const handleStyleChange = useCallback((style: string) => {
     if (!map) return;
     console.log('Changing map style to:', style);
