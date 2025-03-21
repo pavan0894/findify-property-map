@@ -22,15 +22,6 @@ const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
           </h1>
         </div>
         
-        {!isMobile && (
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Properties</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Map</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">About</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Contact</a>
-          </nav>
-        )}
-        
         <div className="flex items-center gap-3">
           {!isMobile && (
             <div className="flex items-center bg-secondary/50 rounded-full px-3 py-1.5 gap-2 border border-border/50">
