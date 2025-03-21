@@ -1,9 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
-import { getMapboxToken, calculateCenter, fitMapToProperties, CBRE_GREEN } from '@/utils/mapUtils';
+import { MAPBOX_TOKEN, calculateCenter, fitMapToProperties, CBRE_GREEN } from '@/utils/mapUtils';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
 
@@ -31,12 +30,10 @@ const Map = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Use the token from utils
-    mapboxgl.accessToken = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Iya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
+    mapboxgl.accessToken = MAPBOX_TOKEN;
     
     const initialCenter = calculateCenter(properties);
     
@@ -53,7 +50,6 @@ const Map = ({
     map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.current.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
 
-    // Add custom animations on load
     map.current.on('load', () => {
       console.log('Map loaded successfully');
       setMapLoaded(true);
@@ -68,7 +64,6 @@ const Map = ({
     };
   }, []); // Empty dependency array ensures this runs once
 
-  // Update markers when properties or filtered properties change
   useEffect(() => {
     if (!map.current || !mapLoaded) {
       console.log('Map not ready for markers', { mapRef: !!map.current, mapLoaded });
@@ -80,21 +75,17 @@ const Map = ({
       filteredCount: filteredProperties.length 
     });
     
-    // Clear previous markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
-    // Add markers for ALL properties
     properties.forEach(property => {
       const markerEl = document.createElement('div');
       markerEl.className = 'flex items-center justify-center';
       
       const icon = document.createElement('div');
       
-      // Check if this property is in the filtered list
       const isInFilteredList = filteredProperties.some(fp => fp.id === property.id);
       
-      // Style based on whether it's in the filtered list
       if (isInFilteredList) {
         icon.className = 'h-8 w-8 text-white rounded-full shadow-lg flex items-center justify-center';
         icon.style.backgroundColor = CBRE_GREEN;
@@ -107,15 +98,13 @@ const Map = ({
       
       markerEl.appendChild(icon);
       
-      // Create marker with fixed positioning
       const marker = new mapboxgl.Marker({
         element: markerEl,
-        anchor: 'bottom', // This ensures the bottom center of the marker is at the coordinate
+        anchor: 'bottom',
       })
         .setLngLat([property.longitude, property.latitude])
         .addTo(map.current!);
       
-      // Add click handler
       marker.getElement().addEventListener('click', () => {
         onSelectProperty(property);
       });
@@ -127,22 +116,18 @@ const Map = ({
 
   }, [properties, filteredProperties, onSelectProperty, mapLoaded]);
 
-  // Handle selected property
   useEffect(() => {
     if (!map.current || !mapLoaded || !selectedProperty) return;
 
-    // Highlight the selected property marker
     if (markersRef.current[selectedProperty.id]) {
       const marker = markersRef.current[selectedProperty.id];
       
-      // Add a popup for the selected property
       const popupContent = document.createElement('div');
       popupContent.className = 'p-0';
       
       const propertyCardContainer = document.createElement('div');
       propertyCardContainer.className = 'w-64';
       
-      // Render the PropertyCard as a string (simplified version)
       propertyCardContainer.innerHTML = `
         <div class="relative overflow-hidden">
           <img 
@@ -188,34 +173,28 @@ const Map = ({
         </div>
       `;
       
-      popupContent.appendChild(propertyCardContainer);
-      
-      // Create and add the popup
       const popup = new mapboxgl.Popup({
         closeButton: true,
         closeOnClick: false,
         maxWidth: '300px',
-        anchor: 'bottom' // Anchor popup to bottom of marker
+        anchor: 'bottom'
       })
         .setLngLat([selectedProperty.longitude, selectedProperty.latitude])
         .setDOMContent(popupContent)
         .addTo(map.current);
       
-      // Fly to the property
       map.current.flyTo({
         center: [selectedProperty.longitude, selectedProperty.latitude],
         zoom: 15,
         duration: 1500
       });
       
-      // Close popup when property is deselected
       return () => {
         popup.remove();
       };
     }
   }, [selectedProperty, mapLoaded]);
 
-  // Reset view button
   const handleResetView = () => {
     if (!map.current) return;
     
