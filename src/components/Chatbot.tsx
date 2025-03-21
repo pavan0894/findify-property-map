@@ -166,7 +166,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       }
       
       // Extract property name by pattern matching
-      const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\s+called|:|\s+named)?\s+['"]?([^'".,!?]+)['"]?/i;
+      const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\\s+called|:|\\s+named)?\\s+['"]?([^'".,!?]+)['"]?/i;
       const propertyMatch = lowerQuery.match(propertyContextRegex);
       
       if (propertyMatch) {
@@ -716,4 +716,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       {!isOpen && (
         <Button
           onClick={handleToggleChat}
-          className="fixed bottom-6 right-6 h-14 w-
+          className="fixed bottom-6 right-6 h-14 w-14 rounded
