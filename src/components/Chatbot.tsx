@@ -6,13 +6,16 @@ import {
   User, 
   X, 
   Maximize2, 
-  Minimize2
+  Minimize2,
+  Sparkles
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Property, POI } from '@/utils/data';
 import { calculateDistance, kmToMiles, findPOIsNearProperty } from '@/utils/mapUtils';
 import { toast } from '@/hooks/use-toast';
+import ApiKeyInput from './ApiKeyInput';
+import { getOpenAIResponse, ChatMessage } from '@/utils/openAIUtils';
 
 interface ChatbotProps {
   properties: Property[];
@@ -50,7 +53,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     }
     return [{
       id: '1',
-      content: "Hello! I'm your property assistant. Ask me about warehouses or points of interest nearby.",
+      content: "Hello! I'm your property assistant powered by AI. Ask me about warehouses or points of interest nearby.",
       sender: 'bot',
       timestamp: new Date()
     }];
@@ -58,6 +61,9 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
+  const [openAIKey, setOpenAIKey] = useState<string>('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [useAI, setUseAI] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,6 +78,15 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  useEffect(() => {
+    // Check if API key exists
+    const savedApiKey = localStorage.getItem('openai-api-key');
+    if (savedApiKey) {
+      setOpenAIKey(savedApiKey);
+      setUseAI(true);
+    }
+  }, []);
 
   const addMessage = (content: string, sender: 'user' | 'bot') => {
     const newMessage: Message = {
@@ -91,19 +106,102 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setIsExpanded(!isExpanded);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
     addMessage(inputValue, 'user');
     setInputValue('');
     setIsThinking(true);
     
-    // Simulate AI thinking time
-    setTimeout(() => {
-      const response = generateAIResponse(inputValue);
-      addMessage(response, 'bot');
-      setIsThinking(false);
-    }, Math.random() * 1000 + 500); // Random delay between 500-1500ms for realism
+    let response;
+    if (useAI && openAIKey) {
+      // Use OpenAI API
+      try {
+        const chatHistory: ChatMessage[] = [
+          {
+            role: 'system',
+            content: `You are a property assistant AI. You help users find information about warehouse properties and nearby points of interest.
+            
+Here's the context:
+1. There are ${properties.length} properties in the database.
+2. There are ${pois.length} points of interest.
+3. ${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 'The user has not selected a specific property yet.'}
+
+Your job is to help the user find properties that match their criteria and points of interest near properties.
+When a user wants to select a specific property, extract the property name and respond with: "I'll use [PROPERTY_NAME] as our reference property."
+When a user wants to find nearby locations, respond with: "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
+
+Be helpful, concise, and focus on answering property-related questions.`
+          },
+          // Convert previous messages to the format OpenAI expects
+          ...messages.slice(-10).map(msg => ({
+            role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
+            content: msg.content
+          })),
+          {
+            role: 'user' as const,
+            content: inputValue
+          }
+        ];
+
+        response = await getOpenAIResponse(chatHistory, openAIKey);
+        
+        // Process response for property selection
+        const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
+        const propertyMatch = response.match(propertyRegex);
+        
+        if (propertyMatch) {
+          const propertyName = propertyMatch[1].trim();
+          const foundProperty = findBestPropertyMatch(propertyName, properties);
+          
+          if (foundProperty) {
+            setActiveProperty(foundProperty);
+            onSelectProperty(foundProperty);
+            toast({
+              title: "Property Selected",
+              description: `Now using ${foundProperty.name} as the active property.`,
+            });
+          }
+        }
+        
+        // Process response for POI finding
+        const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
+        const poiMatch = response.match(poiRegex);
+        
+        if (poiMatch && activeProperty) {
+          const poiType = poiMatch[2].trim().toLowerCase();
+          const matchingPois = findMatchingPOIs(poiType, pois);
+          
+          if (matchingPois.length > 0) {
+            const distance = 5 * 1.60934; // 5 miles in km
+            const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+            
+            if (nearbyPois.length > 0) {
+              onShowPOIs(nearbyPois);
+              toast({
+                title: `Found ${nearbyPois.length} locations`,
+                description: `Showing ${poiType} locations near ${activeProperty.name}`,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error getting AI response:', error);
+        response = 'Sorry, I had trouble connecting to my AI brain. Using local responses instead...';
+        response += '\n\n' + generateAIResponse(inputValue);
+      }
+    } else {
+      // Use local response generator
+      setTimeout(() => {
+        response = generateAIResponse(inputValue);
+        addMessage(response, 'bot');
+        setIsThinking(false);
+      }, Math.random() * 800 + 300); // Random delay between 300-1100ms for realism
+      return;
+    }
+    
+    addMessage(response, 'bot');
+    setIsThinking(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -118,12 +216,24 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     localStorage.removeItem(STORAGE_KEY);
     setMessages([{
       id: '1',
-      content: "Hello! I'm your property assistant. Ask me about warehouses or points of interest nearby.",
+      content: "Hello! I'm your property assistant powered by AI. Ask me about warehouses or points of interest nearby.",
       sender: 'bot',
       timestamp: new Date()
     }]);
     setActiveProperty(null);
     setIsOpen(false);
+  };
+
+  const toggleApiKeyInput = () => {
+    setShowApiKeyInput(!showApiKeyInput);
+  };
+
+  const handleApiKeyChange = (apiKey: string) => {
+    setOpenAIKey(apiKey);
+    setUseAI(!!apiKey);
+    if (apiKey) {
+      setShowApiKeyInput(false);
+    }
   };
 
   const generateAIResponse = (query: string): string => {
@@ -391,7 +501,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     
     if (lowerQuery.includes("smallest")) {
       const smallest = [...properties].sort((a, b) => a.size - b.size)[0];
-      return `The smallest property is <a href="#" class="text-primary hover:underline" data-property-id="${smallest.id}">${smallest.name}</a> with ${formatSize(smallest.size)}. Would you like to see the details?`;
+      return `The smallest property is <a href="#" class="text-primary hover:underline" data-property-id="${smallest.id}">${smallest.name}</a> with ${formatSize(smallest.size)}. Would you prefer something larger or smaller?`;
     }
     
     if (lowerQuery.includes("most expensive") || lowerQuery.includes("highest price")) {
@@ -582,7 +692,24 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
               )}
             </h3>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleApiKeyInput}
+              className="h-8 w-8"
+              title={useAI ? "AI Mode Active" : "Configure AI"}
+            >
+              <Sparkles className={`h-4 w-4 ${useAI ? "text-primary" : "text-muted-foreground"}`} />
+            </Button>
+          </div>
         </div>
+
+        {showApiKeyInput && (
+          <div className="p-2">
+            <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
+          </div>
+        )}
 
         <div 
           className="flex-1 p-4 overflow-y-auto space-y-4"
@@ -696,6 +823,15 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
               </h3>
             </div>
             <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleApiKeyInput}
+                className="h-8 w-8"
+                title={useAI ? "AI Mode Active" : "Configure AI"}
+              >
+                <Sparkles className={`h-4 w-4 ${useAI ? "text-primary" : "text-muted-foreground"}`} />
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleToggleExpand} className="h-8 w-8">
                 {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>
@@ -704,6 +840,12 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
               </Button>
             </div>
           </div>
+
+          {showApiKeyInput && (
+            <div className="p-2">
+              <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
+            </div>
+          )}
 
           <div 
             className="flex-1 p-4 overflow-y-auto space-y-4"
@@ -788,3 +930,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
 };
 
 export default Chatbot;
+

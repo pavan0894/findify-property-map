@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -42,7 +41,6 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
-  // Set the default style to only streets
   const [currentMapStyle, setCurrentMapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
   const [is3DEnabled, setIs3DEnabled] = useState<boolean>(true);
 
@@ -70,13 +68,11 @@ const Map = forwardRef<MapRef, MapProps>(({
       const newValue = !prev;
       
       if (newValue) {
-        // Enable 3D view
         map.easeTo({
           pitch: 45,
           duration: 1000
         });
       } else {
-        // Disable 3D view
         map.easeTo({
           pitch: 0,
           duration: 1000
@@ -92,18 +88,11 @@ const Map = forwardRef<MapRef, MapProps>(({
     console.log('Changing map style to:', style);
     setCurrentMapStyle(style);
     
-    // Clear previous event listeners to prevent duplicates
     map.off('style.load');
-    
-    // Apply new style with the correct arguments required by mapbox-gl
-    // Updated to use correct parameters for setStyle
     map.setStyle(style);
-    
-    // Re-add event listeners after style change
     map.on('style.load', () => {
       console.log('Style loaded successfully:', map.getStyle().name);
       
-      // Only add 3D buildings if not in satellite mode
       if (!map.getStyle().name?.includes('Satellite') && !map.getLayer('3d-buildings')) {
         map.addLayer({
           'id': '3d-buildings',
