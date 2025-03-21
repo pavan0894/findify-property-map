@@ -1,14 +1,11 @@
 
 import React from 'react';
 import Navbar from '@/components/Navbar';
-import { useIsMobile } from '@/hooks/use-mobile';
 import Chatbot from '@/components/Chatbot';
 import { Property, POI } from '@/utils/data';
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  toggleSidebar: () => void;
-  sidebarOpen: boolean;
   properties: Property[];
   pointsOfInterest: POI[];
   onSelectProperty: (property: Property) => void;
@@ -18,19 +15,15 @@ interface MainLayoutProps {
 
 const MainLayout = ({
   children,
-  toggleSidebar,
-  sidebarOpen,
   properties,
   pointsOfInterest,
   onSelectProperty,
   onSelectPOI,
   onShowPOIs
 }: MainLayoutProps) => {
-  const isMobile = useIsMobile();
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <Navbar />
       
       <main className="flex-1 flex flex-col pt-16">
         {children}

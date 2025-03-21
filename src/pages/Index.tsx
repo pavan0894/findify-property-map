@@ -5,13 +5,13 @@ import { properties, pointsOfInterest, POI, Property } from '@/utils/data';
 import { filterPropertiesByPOIDistance } from '@/utils/mapUtils';
 import MainLayout from '@/components/layout/MainLayout';
 import Map, { MapRef } from '@/components/Map';
-import Sidebar from '@/components/sidebar/Sidebar';
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import PropertyDetails from '@/components/PropertyDetails';
+import PropertyTable from '@/components/property/PropertyTable';
+import SearchFilters from '@/components/SearchFilters';
 
 const Index = () => {
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [selectedPOITypes, setSelectedPOITypes] = useState<string[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>(properties);
   const [maxDistance, setMaxDistance] = useState(5); // in miles
@@ -59,11 +59,6 @@ const Index = () => {
     setSearchQuery(query);
   };
   
-  // Toggle sidebar for mobile
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-  
   // Handle property selection
   const handleSelectProperty = (property: Property) => {
     setSelectedProperty(property);
@@ -89,33 +84,16 @@ const Index = () => {
   
   return (
     <MainLayout 
-      toggleSidebar={toggleSidebar} 
-      sidebarOpen={sidebarOpen}
       properties={properties}
       pointsOfInterest={pointsOfInterest}
       onSelectProperty={handleSelectProperty}
       onSelectPOI={handleSelectPOI}
       onShowPOIs={handleShowPOIs}
     >
-      <div className="flex-1 flex relative">
-        {/* Sidebar Component */}
-        <Sidebar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          poiTypes={poiTypes}
-          selectedPOITypes={selectedPOITypes}
-          setSelectedPOITypes={setSelectedPOITypes}
-          maxDistance={maxDistance}
-          setMaxDistance={setMaxDistance}
-          onSearch={handleSearch}
-          filteredProperties={filteredProperties}
-          selectedProperty={selectedProperty}
-          onSelectProperty={handleSelectProperty}
-        />
-        
-        {/* Mobile Search Overlay */}
-        {isMobile && (
-          <MobileSearchOverlay
+      <div className="flex flex-col h-full">
+        {/* Top section with filters */}
+        <div className="p-4 bg-gray-50">
+          <SearchFilters
             poiTypes={poiTypes}
             selectedPOITypes={selectedPOITypes}
             setSelectedPOITypes={setSelectedPOITypes}
@@ -123,10 +101,23 @@ const Index = () => {
             setMaxDistance={setMaxDistance}
             onSearch={handleSearch}
           />
-        )}
-        
-        {/* Map */}
-        <div className="flex-1 relative">
+        </div>
+
+        {/* Map container */}
+        <div className="h-[50vh] relative">
+          {/* Mobile Search Overlay */}
+          {isMobile && (
+            <MobileSearchOverlay
+              poiTypes={poiTypes}
+              selectedPOITypes={selectedPOITypes}
+              setSelectedPOITypes={setSelectedPOITypes}
+              maxDistance={maxDistance}
+              setMaxDistance={setMaxDistance}
+              onSearch={handleSearch}
+            />
+          )}
+          
+          {/* Map */}
           <Map
             properties={properties}
             filteredProperties={filteredProperties}
@@ -136,6 +127,15 @@ const Index = () => {
             onSelectProperty={handleSelectProperty}
             maxDistance={maxDistance}
             ref={mapRef}
+          />
+        </div>
+        
+        {/* Table section */}
+        <div className="flex-1 overflow-auto p-4">
+          <PropertyTable
+            properties={filteredProperties}
+            onSelectProperty={handleSelectProperty}
+            selectedProperty={selectedProperty}
           />
         </div>
       </div>
