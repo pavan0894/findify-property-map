@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -33,6 +34,7 @@ const Map = ({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // Initialize the map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -76,8 +78,9 @@ const Map = ({
       console.error('Error initializing map:', error);
       setMapError('Error initializing map. Please check Mapbox API status.');
     }
-  }, [mapToken, properties]); // Dependencies are mapToken and properties
+  }, [mapToken, properties]); 
 
+  // Update markers when properties or filtered properties change
   useEffect(() => {
     if (!map.current || !mapLoaded) {
       console.log('Map not ready for markers', { mapRef: !!map.current, mapLoaded });
@@ -89,9 +92,11 @@ const Map = ({
       filteredCount: filteredProperties.length 
     });
     
+    // Clear existing markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
+    // Add markers for all properties
     properties.forEach(property => {
       const markerEl = document.createElement('div');
       markerEl.className = 'flex items-center justify-center';
@@ -130,6 +135,7 @@ const Map = ({
 
   }, [properties, filteredProperties, onSelectProperty, mapLoaded]);
 
+  // Show popup for selected property
   useEffect(() => {
     if (!map.current || !mapLoaded || !selectedProperty) return;
 
@@ -194,7 +200,7 @@ const Map = ({
         anchor: 'bottom'
       })
         .setLngLat([selectedProperty.longitude, selectedProperty.latitude])
-        .setDOMContent(popupContent)
+        .setDOMContent(propertyCardContainer)
         .addTo(map.current);
       
       map.current.flyTo({
