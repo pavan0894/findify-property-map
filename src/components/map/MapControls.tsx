@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Cube, MapPin } from 'lucide-react';
+import { Box3D, MapPin } from 'lucide-react';
 import { CBRE_GREEN } from '@/utils/mapUtils';
 
 interface MapControlsProps {
@@ -31,7 +31,7 @@ const MapControls = ({ onResetView, onToggle3D, is3DEnabled }: MapControlsProps)
           onClick={onToggle3D}
           style={{ backgroundColor: is3DEnabled ? CBRE_GREEN : 'white', color: is3DEnabled ? 'white' : CBRE_GREEN }}
         >
-          <Cube className="h-4 w-4" />
+          <Box3D className="h-4 w-4" />
           3D View
         </Button>
       )}
