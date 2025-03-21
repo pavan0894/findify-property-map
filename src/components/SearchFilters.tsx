@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Sliders, 
-  Search, 
   Package,
   Box,
   PackageCheck,
@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Popover,
@@ -25,7 +24,7 @@ interface SearchFiltersProps {
   setSelectedPOITypes: (types: string[]) => void;
   maxDistance: number;
   setMaxDistance: (distance: number) => void;
-  onSearch: (searchQuery: string) => void;
+  onSearch?: (searchQuery: string) => void;
   className?: string;
 }
 
@@ -47,10 +46,8 @@ const SearchFilters = ({
   setSelectedPOITypes,
   maxDistance,
   setMaxDistance,
-  onSearch,
   className = ''
 }: SearchFiltersProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -62,23 +59,9 @@ const SearchFilters = ({
     }
   };
 
-  const handleSearch = () => {
-    onSearch(searchQuery);
-    if (isMobile) {
-      setIsPopoverOpen(false);
-    }
-  };
-
   const clearFilters = () => {
     setSelectedPOITypes([]);
     setMaxDistance(5);
-    setSearchQuery('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
   };
 
   const FiltersContent = () => (
@@ -135,12 +118,6 @@ const SearchFilters = ({
       </div>
 
       <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
-        <Button 
-          onClick={handleSearch} 
-          className="w-full rounded-full bg-primary hover:bg-primary/90"
-        >
-          Apply Filters
-        </Button>
         {(selectedPOITypes.length > 0 || maxDistance !== 5) && (
           <Button 
             variant="outline" 
@@ -158,14 +135,6 @@ const SearchFilters = ({
     return (
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="relative flex items-center w-full">
-          <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search properties..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9 pr-9 py-5 h-auto bg-background border border-input rounded-full"
-          />
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button 
@@ -207,26 +176,7 @@ const SearchFilters = ({
   }
 
   return (
-    <div className={`glass-panel rounded-xl p-4 ${className} animate-fade-in`}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search properties..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9 bg-white/50 border-input/50"
-          />
-        </div>
-        <Button 
-          onClick={handleSearch} 
-          className="rounded-full px-5"
-        >
-          Search
-        </Button>
-      </div>
-      
+    <div className={`glass-panel rounded-xl p-4 ${className} animate-fade-in`}>      
       <FiltersContent />
     </div>
   );

@@ -16,7 +16,6 @@ interface SidebarProps {
   setSelectedPOITypes: React.Dispatch<React.SetStateAction<string[]>>;
   maxDistance: number;
   setMaxDistance: React.Dispatch<React.SetStateAction<number>>;
-  onSearch: (query: string) => void;
   filteredProperties: Property[];
   selectedProperty: Property | null;
   onSelectProperty: (property: Property) => void;
@@ -30,7 +29,6 @@ const Sidebar = ({
   setSelectedPOITypes,
   maxDistance,
   setMaxDistance,
-  onSearch,
   filteredProperties,
   selectedProperty,
   onSelectProperty
@@ -48,7 +46,6 @@ const Sidebar = ({
               setSelectedPOITypes={setSelectedPOITypes}
               maxDistance={maxDistance}
               setMaxDistance={setMaxDistance}
-              onSearch={onSearch}
             />
           </div>
           
@@ -76,7 +73,6 @@ const Sidebar = ({
           setSelectedPOITypes={setSelectedPOITypes}
           maxDistance={maxDistance}
           setMaxDistance={setMaxDistance}
-          onSearch={onSearch}
         />
       </div>
       

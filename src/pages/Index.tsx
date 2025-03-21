@@ -17,7 +17,6 @@ const Index = () => {
   const [maxDistance, setMaxDistance] = useState(5); // in miles
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
   const mapRef = useRef<MapRef>(null);
@@ -25,21 +24,9 @@ const Index = () => {
   // Extract unique POI types
   const poiTypes = Array.from(new Set(pointsOfInterest.map(poi => poi.type)));
   
-  // Filter properties based on search, POI types, and distance
+  // Filter properties based on POI types and distance
   useEffect(() => {
     let result = [...properties];
-    
-    // Filter by search query if provided
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        property => 
-          property.name.toLowerCase().includes(query) ||
-          property.address.toLowerCase().includes(query) ||
-          property.description.toLowerCase().includes(query) ||
-          property.features.some(feature => feature.toLowerCase().includes(query))
-      );
-    }
     
     // Filter by distance to selected POI types
     if (selectedPOITypes.length > 0) {
@@ -52,12 +39,7 @@ const Index = () => {
     }
     
     setFilteredProperties(result);
-  }, [searchQuery, selectedPOITypes, maxDistance]);
-  
-  // Handle search
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
+  }, [selectedPOITypes, maxDistance]);
   
   // Handle property selection
   const handleSelectProperty = (property: Property) => {
@@ -99,7 +81,6 @@ const Index = () => {
             setSelectedPOITypes={setSelectedPOITypes}
             maxDistance={maxDistance}
             setMaxDistance={setMaxDistance}
-            onSearch={handleSearch}
           />
         </div>
 
@@ -113,7 +94,6 @@ const Index = () => {
               setSelectedPOITypes={setSelectedPOITypes}
               maxDistance={maxDistance}
               setMaxDistance={setMaxDistance}
-              onSearch={handleSearch}
             />
           )}
           
