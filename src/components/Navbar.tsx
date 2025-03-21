@@ -18,7 +18,7 @@ const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
         <div className="flex items-center gap-2">
           <Warehouse className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-semibold tracking-tight">
-            Findify
+            Survey Agent
           </h1>
         </div>
         
