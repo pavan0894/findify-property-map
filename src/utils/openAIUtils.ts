@@ -39,3 +39,6 @@ export async function getOpenAIResponse(
     return 'Sorry, I had trouble connecting to my AI brain. Please try again later.';
   }
 }
+
+// Add a type definition for the comparison type
+export type PriceComparisonType = 'below' | 'above' | 'around';

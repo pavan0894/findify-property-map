@@ -15,7 +15,7 @@ import { Property, POI } from '@/utils/data';
 import { calculateDistance, kmToMiles, findPOIsNearProperty } from '@/utils/mapUtils';
 import { toast } from '@/hooks/use-toast';
 import ApiKeyInput from './ApiKeyInput';
-import { getOpenAIResponse, ChatMessage } from '@/utils/openAIUtils';
+import { getOpenAIResponse, ChatMessage, PriceComparisonType } from '@/utils/openAIUtils';
 
 interface ChatbotProps {
   properties: Property[];
@@ -80,7 +80,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   }, [messages]);
 
   useEffect(() => {
-    // Check if API key exists
     const savedApiKey = localStorage.getItem('openai-api-key');
     if (savedApiKey) {
       setOpenAIKey(savedApiKey);
@@ -115,7 +114,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     
     let response;
     if (useAI && openAIKey) {
-      // Use OpenAI API
       try {
         const chatHistory: ChatMessage[] = [
           {
@@ -133,7 +131,6 @@ When a user wants to find nearby locations, respond with: "I found [NUMBER] [TYP
 
 Be helpful, concise, and focus on answering property-related questions.`
           },
-          // Convert previous messages to the format OpenAI expects
           ...messages.slice(-10).map(msg => ({
             role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
             content: msg.content
@@ -146,7 +143,6 @@ Be helpful, concise, and focus on answering property-related questions.`
 
         response = await getOpenAIResponse(chatHistory, openAIKey);
         
-        // Process response for property selection
         const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
         const propertyMatch = response.match(propertyRegex);
         
@@ -164,7 +160,6 @@ Be helpful, concise, and focus on answering property-related questions.`
           }
         }
         
-        // Process response for POI finding
         const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
         const poiMatch = response.match(poiRegex);
         
@@ -173,7 +168,7 @@ Be helpful, concise, and focus on answering property-related questions.`
           const matchingPois = findMatchingPOIs(poiType, pois);
           
           if (matchingPois.length > 0) {
-            const distance = 5 * 1.60934; // 5 miles in km
+            const distance = 5 * 1.60934;
             const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
             
             if (nearbyPois.length > 0) {
@@ -191,12 +186,11 @@ Be helpful, concise, and focus on answering property-related questions.`
         response += '\n\n' + generateAIResponse(inputValue);
       }
     } else {
-      // Use local response generator
       setTimeout(() => {
         response = generateAIResponse(inputValue);
         addMessage(response, 'bot');
         setIsThinking(false);
-      }, Math.random() * 800 + 300); // Random delay between 300-1100ms for realism
+      }, Math.random() * 800 + 300);
       return;
     }
     
@@ -233,6 +227,19 @@ Be helpful, concise, and focus on answering property-related questions.`
     setUseAI(!!apiKey);
     if (apiKey) {
       setShowApiKeyInput(false);
+    }
+  };
+
+  const filterPropertiesByPrice = (targetPrice: number, comparisonType: PriceComparisonType, properties: Property[]): Property[] => {
+    if (comparisonType === 'below') {
+      return properties.filter(p => p.price < targetPrice);
+    } else if (comparisonType === 'above') {
+      return properties.filter(p => p.price > targetPrice);
+    } else {
+      const tolerance = 0.15;
+      const minPrice = targetPrice * (1 - tolerance);
+      const maxPrice = targetPrice * (1 + tolerance);
+      return properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
     }
   };
 
@@ -412,7 +419,7 @@ Be helpful, concise, and focus on answering property-related questions.`
           const targetPrice = parseFloat(numericPart) * multiplier;
           
           if (!isNaN(targetPrice)) {
-            let comparisonType = "around";
+            let comparisonType: PriceComparisonType = "around";
             if (lowerQuery.includes("under") || lowerQuery.includes("below") || lowerQuery.includes("less than")) {
               comparisonType = "below";
             } else if (lowerQuery.includes("above") || lowerQuery.includes("over") || lowerQuery.includes("more than")) {
@@ -615,19 +622,6 @@ Be helpful, concise, and focus on answering property-related questions.`
     return properties.filter(property => 
       property.size >= minSize && property.size <= maxSize
     );
-  };
-
-  const filterPropertiesByPrice = (targetPrice: number, comparisonType: 'below' | 'above' | 'around', properties: Property[]): Property[] => {
-    if (comparisonType === 'below') {
-      return properties.filter(p => p.price < targetPrice);
-    } else if (comparisonType === 'above') {
-      return properties.filter(p => p.price > targetPrice);
-    } else {
-      const tolerance = 0.15;
-      const minPrice = targetPrice * (1 - tolerance);
-      const maxPrice = targetPrice * (1 + tolerance);
-      return properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
-    }
   };
 
   const formatSize = (size: number): string => {
@@ -930,4 +924,3 @@ Be helpful, concise, and focus on answering property-related questions.`
 };
 
 export default Chatbot;
-

@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -89,7 +90,7 @@ const Map = forwardRef<MapRef, MapProps>(({
     setCurrentMapStyle(style);
     
     map.off('style.load');
-    map.setStyle(style);
+    map.setStyle(style, { diff: false });
     map.on('style.load', () => {
       console.log('Style loaded successfully:', map.getStyle().name);
       
