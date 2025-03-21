@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { properties, pointsOfInterest, POI, Property } from '@/utils/data';
 import { filterPropertiesByPOIDistance, MAPBOX_TOKEN } from '@/utils/mapUtils';
@@ -13,6 +13,11 @@ import PropertyCard from '@/components/PropertyCard';
 import PropertyDetails from '@/components/PropertyDetails';
 import Chatbot from '@/components/Chatbot';
 
+interface MapRef {
+  clearPOIs: () => void;
+  showPOIs: (pois: POI[]) => void;
+}
+
 const Index = () => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -23,6 +28,8 @@ const Index = () => {
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
+  const [activePOIs, setActivePOIs] = useState<POI[]>([]);
+  const mapRef = useRef<Map>(null);
   
   // Extract unique POI types
   const poiTypes = Array.from(new Set(pointsOfInterest.map(poi => poi.type)));
@@ -77,6 +84,11 @@ const Index = () => {
     setSelectedPOI(poi);
     setSelectedPOITypes([poi.type]);
     setShowPropertyDetails(false);
+  };
+  
+  // Show POIs on map (called from Chatbot)
+  const handleShowPOIs = (pois: POI[]) => {
+    setActivePOIs(pois);
   };
   
   // Close property details
@@ -199,6 +211,7 @@ const Index = () => {
               selectedProperty={selectedProperty}
               onSelectProperty={handleSelectProperty}
               maxDistance={maxDistance}
+              ref={mapRef}
             />
           </div>
         </div>
@@ -219,6 +232,7 @@ const Index = () => {
         pois={pointsOfInterest}
         onSelectProperty={handleSelectProperty}
         onSelectPOI={handleSelectPOI}
+        onShowPOIs={handleShowPOIs}
       />
     </div>
   );

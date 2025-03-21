@@ -9,6 +9,7 @@ import MapInitializer from '@/components/map/MapInitializer';
 import MapMarker from '@/components/map/MapMarker';
 import PropertyPopup from '@/components/map/PropertyPopup';
 import MapControls from '@/components/map/MapControls';
+import POIMarker from '@/components/map/POIMarker';
 
 interface MapProps {
   properties: Property[];
@@ -34,6 +35,7 @@ const Map = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [activePOIs, setActivePOIs] = useState<POI[]>([]);
 
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
@@ -59,12 +61,39 @@ const Map = ({
     stableProperties.current = properties;
   }, [properties]);
 
+  // When selectedPOI changes, add it to activePOIs if it's not already there
+  useEffect(() => {
+    if (selectedPOI && !activePOIs.some(poi => poi.id === selectedPOI.id)) {
+      setActivePOIs(prev => [...prev, selectedPOI]);
+    }
+  }, [selectedPOI]);
+
   // Debug information
   useEffect(() => {
     if (mapLoaded && map) {
-      console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
+      console.log(`Map loaded with ${properties.length} total properties, ${filteredProperties.length} filtered properties, and ${activePOIs.length} active POIs`);
     }
-  }, [mapLoaded, map, properties.length, filteredProperties.length]);
+  }, [mapLoaded, map, properties.length, filteredProperties.length, activePOIs.length]);
+
+  // Method to clear POIs
+  const clearPOIs = useCallback(() => {
+    setActivePOIs([]);
+  }, []);
+
+  // Method to set specific POIs
+  const showPOIs = useCallback((pois: POI[]) => {
+    setActivePOIs(pois);
+  }, []);
+
+  // Make these methods available through the component ref
+  React.useImperativeHandle(
+    React.createRef(),
+    () => ({
+      clearPOIs,
+      showPOIs
+    }),
+    [clearPOIs, showPOIs]
+  );
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
@@ -87,6 +116,15 @@ const Map = ({
               map={map}
               isFiltered={filteredProperties.some(fp => fp.id === property.id)}
               onSelectProperty={onSelectProperty}
+            />
+          ))}
+          
+          {activePOIs.map(poi => (
+            <POIMarker
+              key={poi.id}
+              poi={poi}
+              map={map}
+              isSelected={selectedPOI?.id === poi.id}
             />
           ))}
           

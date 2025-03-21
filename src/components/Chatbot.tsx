@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -13,12 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Property, POI } from '@/utils/data';
 import { calculateDistance, kmToMiles, findPOIsNearProperty } from '@/utils/mapUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatbotProps {
   properties: Property[];
   pois: POI[];
   onSelectProperty: (property: Property) => void;
   onSelectPOI: (poi: POI) => void;
+  onShowPOIs: (pois: POI[]) => void;
 }
 
 interface Message {
@@ -30,7 +31,7 @@ interface Message {
 
 const STORAGE_KEY = 'property-assistant-chat';
 
-const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotProps) => {
+const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs }: ChatbotProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -128,7 +129,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return "Hello! I can help you find information about warehouses and points of interest. Try asking about properties near specific places, or properties with certain features.";
     }
     
-    // Property context setting - user wants to focus on a specific property
     const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\s+called|:|\s+named)?\s+['"]?([^'".,!?]+)['"]?/i;
     const propertyMatch = lowerQuery.match(propertyContextRegex);
     
@@ -141,19 +141,20 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       if (matchedProperty) {
         setActiveProperty(matchedProperty);
         onSelectProperty(matchedProperty);
+        toast({
+          title: "Property Selected",
+          description: `Now using ${matchedProperty.name} as the active property.`,
+        });
         return `I'll now use ${matchedProperty.name} as our reference property for your questions. What would you like to know about it or places nearby?`;
       } else {
         return `I couldn't find a property named "${propertyName}". Please try another property name.`;
       }
     }
     
-    // IMPROVED: Search for POIs near the active property with specific distance
     const propertyPoiRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|within|in)\s+(\d+(?:\.\d+)?)\s*(?:miles?|mi|km|kilometers?)\s+(?:of|from)?\s+(?:this property|current property|it|selected property)/i;
     
-    // IMPROVED: Simple POI search near the active property with default distance
     const poiNearPropertyRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|close to|by)\s+(?:this property|current property|it|selected property|the property)/i;
     
-    // IMPROVED: Brand-specific search (like FedEx)
     const brandPoiRegex = /(?:find|show|are there|any|where is|location of)\s+(fedex|ups|usps|amazon|walmart|target|starbucks|mcdonalds)(?:\s+location(?:s)?)?(?:\s+(?:near|around|close to|by|within))(?:\s+(\d+(?:\.\d+)?)\s*(?:miles?|mi|km|kilometers?))?(?:\s+(?:of|from))?\s+(?:this property|current property|it|selected property|the property)?/i;
     
     const propertyPoiMatch = lowerQuery.match(propertyPoiRegex);
@@ -176,7 +177,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       } else if (brandPoiMatch) {
         poiType = brandPoiMatch[1].trim().toLowerCase();
         
-        // If distance is specified in the brand query
         if (brandPoiMatch[2]) {
           distance = parseFloat(brandPoiMatch[2]);
           if (lowerQuery.includes('mile') || lowerQuery.includes('mi')) {
@@ -187,8 +187,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       
       console.log(`Searching for POI type: "${poiType}" within ${distance}km of ${activeProperty.name}`);
       
-      // IMPROVED: More flexible POI type matching using includes instead of exact match
-      // Also handle brand names like FedEx that might be stored as "Shipping" or "Logistics"
       let matchingPois = [];
       
       if (poiType === 'fedex') {
@@ -223,6 +221,17 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         return distA - distB;
       });
       
+      onShowPOIs(nearbyPois);
+      
+      if (poiType === 'fedex' && nearbyPois.length > 0) {
+        onSelectPOI(nearbyPois[0]);
+      }
+      
+      toast({
+        title: `Found ${nearbyPois.length} locations`,
+        description: `Showing ${poiType} locations near ${activeProperty.name}`,
+      });
+      
       const poiLinks = nearbyPois.slice(0, 5).map(poi => {
         const dist = calculateDistance(activeProperty.latitude, activeProperty.longitude, poi.latitude, poi.longitude);
         const distStr = lowerQuery.includes('kilometer') || lowerQuery.includes('km') 
@@ -232,7 +241,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         return `<a href="#" class="text-primary hover:underline" data-poi-id="${poi.id}">${poi.name}</a> (${distStr})`;
       }).join(', ');
       
-      return `I found ${nearbyPois.length} ${poiType} locations near ${activeProperty.name}. Here are the closest ones: ${poiLinks}. Click on any location to see it on the map.`;
+      return `I found ${nearbyPois.length} ${poiType} locations near ${activeProperty.name} and added them to the map. Here are the closest ones: ${poiLinks}. Click on any location to see it on the map.`;
     }
     
     if (/how many (properties|warehouses) (are there|do you have|are available)/.test(lowerQuery) || 
@@ -425,6 +434,10 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         if (property) {
           setActiveProperty(property);
           onSelectProperty(property);
+          toast({
+            title: "Property Selected",
+            description: `Now viewing ${property.name}`,
+          });
         }
       } else if (target.hasAttribute('data-poi-id')) {
         const poiId = target.getAttribute('data-poi-id');
@@ -432,6 +445,10 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         
         if (poi) {
           onSelectPOI(poi);
+          toast({
+            title: "Location Selected",
+            description: `Now viewing ${poi.name}`,
+          });
         }
       }
     }
@@ -570,3 +587,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
 };
 
 export default Chatbot;
+
