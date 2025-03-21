@@ -5,6 +5,9 @@ import { Property, POI } from './data';
 // Update to use a valid public Mapbox token
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Aya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
 
+// CBRE Green color
+export const CBRE_GREEN = '#00833e';
+
 // Calculate distance between two points using the Haversine formula
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radius of the earth in km
@@ -89,9 +92,9 @@ export function fitMapToProperties(map: mapboxgl.Map, properties: Property[]) {
   });
   
   map.fitBounds(bounds, {
-    padding: 80, // Increased padding to ensure all markers are visible
-    maxZoom: 12, // Lower maxZoom to ensure we don't zoom in too close
-    duration: 1500 // Slightly faster animation
+    padding: 100, // Increased padding to ensure all markers are visible
+    maxZoom: 11, // Lower maxZoom to ensure we don't zoom in too close
+    duration: 1000 // Faster animation
   });
 }
 

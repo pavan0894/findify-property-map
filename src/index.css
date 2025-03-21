@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 210 100% 50%;
+    --primary: 150 100% 26%; /* CBRE Green */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -45,6 +45,8 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --cbre-green: 150 100% 26%;
   }
 
   * {
@@ -108,6 +110,18 @@
 
   .mapboxgl-ctrl button {
     @apply text-gray-700 hover:bg-gray-100/50;
+  }
+
+  /* Property marker styling */
+  .property-marker {
+    transform: translate(-50%, -50%);
+    will-change: transform;
+    transform-origin: center center;
+    z-index: 1;
+  }
+  
+  .property-marker:hover {
+    z-index: 2;
   }
 
   /* Loading effect */
