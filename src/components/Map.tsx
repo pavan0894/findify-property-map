@@ -36,12 +36,14 @@ const Map = ({
   const [mapError, setMapError] = useState<string | null>(null);
 
   const handleMapReady = (mapInstance: mapboxgl.Map) => {
+    console.log('Map is now ready and loaded');
     setMap(mapInstance);
     setMapLoaded(true);
     setMapError(null);
   };
 
   const handleMapError = (error: string) => {
+    console.error('Map initialization error:', error);
     setMapError(error);
   };
 
