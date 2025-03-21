@@ -42,7 +42,8 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
-  const [currentMapStyle, setCurrentMapStyle] = useState<string>('mapbox://styles/mapbox/light-v11');
+  // Set the default style to only streets
+  const [currentMapStyle, setCurrentMapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
   const [is3DEnabled, setIs3DEnabled] = useState<boolean>(true);
 
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
@@ -94,7 +95,7 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style with correct TypeScript syntax for Mapbox GL
+    // Apply new style with the required options for mapbox-gl
     map.setStyle(style, { diff: false });
     
     // Re-add event listeners after style change
