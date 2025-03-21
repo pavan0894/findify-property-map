@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -94,15 +95,15 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style with correct typescript types
-    map.setStyle(style);
+    // Apply new style with the correct arguments required by mapbox-gl
+    map.setStyle(style, { diff: false });
     
     // Re-add event listeners after style change
     map.on('style.load', () => {
       console.log('Style loaded successfully:', map.getStyle().name);
       
       // Only add 3D buildings if not in satellite mode
-      if (!map.getStyle().name.includes('Satellite') && !map.getLayer('3d-buildings')) {
+      if (!map.getStyle().name?.includes('Satellite') && !map.getLayer('3d-buildings')) {
         map.addLayer({
           'id': '3d-buildings',
           'source': 'composite',

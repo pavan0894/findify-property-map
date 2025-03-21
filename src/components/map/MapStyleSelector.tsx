@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Select,
@@ -6,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Map } from 'lucide-react';
+import { Map, Mountain, Building, Palmtree } from 'lucide-react';
 
 interface MapStyleSelectorProps {
   currentStyle: string;
@@ -19,6 +20,21 @@ const MapStyleSelector = ({ currentStyle, onStyleChange }: MapStyleSelectorProps
       value: 'mapbox://styles/mapbox/streets-v12', 
       label: 'Streets', 
       icon: <Map className="h-4 w-4 mr-2" /> 
+    },
+    { 
+      value: 'mapbox://styles/mapbox/satellite-v9', 
+      label: 'Satellite', 
+      icon: <Palmtree className="h-4 w-4 mr-2" /> 
+    },
+    { 
+      value: 'mapbox://styles/mapbox/light-v11', 
+      label: 'Light', 
+      icon: <Building className="h-4 w-4 mr-2" /> 
+    },
+    { 
+      value: 'mapbox://styles/mapbox/outdoors-v12', 
+      label: 'Outdoors', 
+      icon: <Mountain className="h-4 w-4 mr-2" /> 
     }
   ];
 
