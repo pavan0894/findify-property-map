@@ -1,3 +1,4 @@
+
 import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
@@ -70,7 +71,7 @@ export function findPOIsNearProperty(
 
 // Function to calculate the center point of an array of coordinates
 export function calculateCenter(properties: Property[]): [number, number] {
-  if (!properties.length) return [-97.0372, 32.8205]; // Default to DFW area
+  if (!properties.length) return [-96.7970, 32.7767]; // Default to Dallas area
   
   const sum = properties.reduce(
     (acc, property) => {
