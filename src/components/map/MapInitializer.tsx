@@ -10,6 +10,7 @@ interface MapInitializerProps {
   mapContainer: React.RefObject<HTMLDivElement>;
   onMapReady: (map: mapboxgl.Map) => void;
   onMapError: (error: string) => void;
+  initialMapStyle: string;
 }
 
 const MapInitializer = ({ 
@@ -17,7 +18,8 @@ const MapInitializer = ({
   properties, 
   mapContainer, 
   onMapReady, 
-  onMapError 
+  onMapError,
+  initialMapStyle
 }: MapInitializerProps) => {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -38,12 +40,14 @@ const MapInitializer = ({
       // Create new map instance
       const mapInstance = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: initialMapStyle,
         center: initialCenter,
         zoom: 10,
-        pitch: 0,
+        pitch: 45, // Enable 3D view with pitch
+        bearing: 0,
         attributionControl: false,
-        renderWorldCopies: false
+        renderWorldCopies: false,
+        antialias: true // Enable antialiasing for smoother rendering
       });
       
       mapRef.current = mapInstance;
@@ -51,6 +55,38 @@ const MapInitializer = ({
       // Add controls
       mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
       mapInstance.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+
+      // Add 3D buildings layer when style is loaded
+      mapInstance.on('style.load', () => {
+        // Add 3D building extrusions
+        if (mapInstance.getStyle().name !== 'Mapbox Satellite') {
+          // Only add 3D buildings if we're not in satellite mode
+          if (!mapInstance.getLayer('3d-buildings')) {
+            mapInstance.addLayer({
+              'id': '3d-buildings',
+              'source': 'composite',
+              'source-layer': 'building',
+              'filter': ['==', 'extrude', 'true'],
+              'type': 'fill-extrusion',
+              'minzoom': 15,
+              'paint': {
+                'fill-extrusion-color': '#aaa',
+                'fill-extrusion-height': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0,
+                  16, ['get', 'height']
+                ],
+                'fill-extrusion-base': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0,
+                  16, ['get', 'min_height']
+                ],
+                'fill-extrusion-opacity': 0.6
+              }
+            });
+          }
+        }
+      });
 
       // Wait for map to be fully loaded before notifying
       mapInstance.on('load', () => {
@@ -85,7 +121,7 @@ const MapInitializer = ({
       console.error('Error initializing map:', error);
       onMapError('Error initializing map. Please check Mapbox API status.');
     }
-  }, [mapToken, properties, mapContainer, onMapReady, onMapError]);
+  }, [mapToken, properties, mapContainer, onMapReady, onMapError, initialMapStyle]);
   
   return null;
 };

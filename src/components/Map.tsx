@@ -10,6 +10,7 @@ import MapMarker from '@/components/map/MapMarker';
 import PropertyPopup from '@/components/map/PropertyPopup';
 import MapControls from '@/components/map/MapControls';
 import POIMarker from '@/components/map/POIMarker';
+import MapStyleSelector from '@/components/map/MapStyleSelector';
 
 export interface MapProps {
   properties: Property[];
@@ -41,6 +42,8 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
+  const [currentMapStyle, setCurrentMapStyle] = useState<string>('mapbox://styles/mapbox/light-v11');
+  const [is3DEnabled, setIs3DEnabled] = useState<boolean>(true);
 
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
@@ -58,6 +61,36 @@ const Map = forwardRef<MapRef, MapProps>(({
     if (!map) return;
     fitMapToProperties(map, properties);
   }, [map, properties]);
+
+  const handleStyleChange = useCallback((style: string) => {
+    if (!map) return;
+    setCurrentMapStyle(style);
+    map.setStyle(style);
+  }, [map]);
+
+  const handleToggle3D = useCallback(() => {
+    if (!map) return;
+    
+    setIs3DEnabled(prev => {
+      const newValue = !prev;
+      
+      if (newValue) {
+        // Enable 3D view
+        map.easeTo({
+          pitch: 45,
+          duration: 1000
+        });
+      } else {
+        // Disable 3D view
+        map.easeTo({
+          pitch: 0,
+          duration: 1000
+        });
+      }
+      
+      return newValue;
+    });
+  }, [map]);
 
   // Ensure map and properties are stable before rendering markers
   const stableProperties = useRef(properties);
@@ -123,6 +156,7 @@ const Map = forwardRef<MapRef, MapProps>(({
         mapContainer={mapContainer}
         onMapReady={handleMapReady}
         onMapError={handleMapError}
+        initialMapStyle={currentMapStyle}
       />
       
       {mapLoaded && map && (
@@ -164,11 +198,19 @@ const Map = forwardRef<MapRef, MapProps>(({
         </div>
       )}
       
-      <MapControls onResetView={handleResetView} />
+      <MapControls 
+        onResetView={handleResetView} 
+        onToggle3D={handleToggle3D}
+        is3DEnabled={is3DEnabled}
+      />
       
       {!mapError && (
-        <div className="absolute top-3 right-3 z-10 max-w-xs">
+        <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-3">
           <MapTokenInput onTokenChange={() => {}} />
+          <MapStyleSelector 
+            currentStyle={currentMapStyle} 
+            onStyleChange={handleStyleChange} 
+          />
         </div>
       )}
     </div>
