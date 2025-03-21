@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Globe, Map, Moon, Mountain, Sun } from 'lucide-react';
+import { Globe, Map, Moon, Sun, Mountain } from 'lucide-react';
 
 interface MapStyleSelectorProps {
   currentStyle: string;
@@ -32,7 +32,7 @@ const MapStyleSelector = ({ currentStyle, onStyleChange }: MapStyleSelectorProps
       icon: <Map className="h-4 w-4 mr-2" /> 
     },
     { 
-      value: 'mapbox://styles/mapbox/satellite-streets-v12', 
+      value: 'mapbox://styles/mapbox/satellite-v9', 
       label: 'Satellite', 
       icon: <Globe className="h-4 w-4 mr-2" /> 
     },

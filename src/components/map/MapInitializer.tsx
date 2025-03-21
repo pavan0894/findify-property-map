@@ -30,6 +30,7 @@ const MapInitializer = ({
 
     try {
       console.log('Initializing map with token:', mapToken);
+      console.log('Initial map style:', initialMapStyle);
       
       // Set Mapbox token
       mapboxgl.accessToken = mapToken;
@@ -46,7 +47,7 @@ const MapInitializer = ({
         pitch: 45, // Enable 3D view with pitch
         bearing: 0,
         attributionControl: false,
-        renderWorldCopies: false,
+        renderWorldCopies: true,
         antialias: true // Enable antialiasing for smoother rendering
       });
       
@@ -58,33 +59,32 @@ const MapInitializer = ({
 
       // Add 3D buildings layer when style is loaded
       mapInstance.on('style.load', () => {
-        // Add 3D building extrusions
-        if (mapInstance.getStyle().name !== 'Mapbox Satellite') {
-          // Only add 3D buildings if we're not in satellite mode
-          if (!mapInstance.getLayer('3d-buildings')) {
-            mapInstance.addLayer({
-              'id': '3d-buildings',
-              'source': 'composite',
-              'source-layer': 'building',
-              'filter': ['==', 'extrude', 'true'],
-              'type': 'fill-extrusion',
-              'minzoom': 15,
-              'paint': {
-                'fill-extrusion-color': '#aaa',
-                'fill-extrusion-height': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 0,
-                  16, ['get', 'height']
-                ],
-                'fill-extrusion-base': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 0,
-                  16, ['get', 'min_height']
-                ],
-                'fill-extrusion-opacity': 0.6
-              }
-            });
-          }
+        console.log('Map style loaded:', mapInstance.getStyle().name);
+        
+        // Only add 3D buildings if we're not in satellite mode
+        if (!mapInstance.getStyle().name.includes('Satellite') && !mapInstance.getLayer('3d-buildings')) {
+          mapInstance.addLayer({
+            'id': '3d-buildings',
+            'source': 'composite',
+            'source-layer': 'building',
+            'filter': ['==', 'extrude', 'true'],
+            'type': 'fill-extrusion',
+            'minzoom': 15,
+            'paint': {
+              'fill-extrusion-color': '#aaa',
+              'fill-extrusion-height': [
+                'interpolate', ['linear'], ['zoom'],
+                15, 0,
+                16, ['get', 'height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate', ['linear'], ['zoom'],
+                15, 0,
+                16, ['get', 'min_height']
+              ],
+              'fill-extrusion-opacity': 0.6
+            }
+          });
         }
       });
 
