@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Warehouse } from 'lucide-react';
+import { Warehouse, Menu, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 
