@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -127,6 +128,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return "Hello! I can help you find information about warehouses and points of interest. Try asking about properties near specific places, or properties with certain features.";
     }
     
+    // Property context setting - user wants to focus on a specific property
     const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\s+called|:|\s+named)?\s+['"]?([^'".,!?]+)['"]?/i;
     const propertyMatch = lowerQuery.match(propertyContextRegex);
     
@@ -145,15 +147,22 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       }
     }
     
+    // IMPROVED: Search for POIs near the active property with specific distance
     const propertyPoiRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|within|in)\s+(\d+(?:\.\d+)?)\s*(?:miles?|mi|km|kilometers?)\s+(?:of|from)?\s+(?:this property|current property|it|selected property)/i;
-    const poiNearPropertyRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|close to|by)\s+(?:this property|current property|it|selected property)/i;
+    
+    // IMPROVED: Simple POI search near the active property with default distance
+    const poiNearPropertyRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|close to|by)\s+(?:this property|current property|it|selected property|the property)/i;
+    
+    // IMPROVED: Brand-specific search (like FedEx)
+    const brandPoiRegex = /(?:find|show|are there|any|where is|location of)\s+(fedex|ups|usps|amazon|walmart|target|starbucks|mcdonalds)(?:\s+location(?:s)?)?(?:\s+(?:near|around|close to|by|within))(?:\s+(\d+(?:\.\d+)?)\s*(?:miles?|mi|km|kilometers?))?(?:\s+(?:of|from))?\s+(?:this property|current property|it|selected property|the property)?/i;
     
     const propertyPoiMatch = lowerQuery.match(propertyPoiRegex);
     const simplePoiMatch = lowerQuery.match(poiNearPropertyRegex);
+    const brandPoiMatch = lowerQuery.match(brandPoiRegex);
     
-    if (activeProperty && (propertyPoiMatch || simplePoiMatch)) {
+    if (activeProperty && (propertyPoiMatch || simplePoiMatch || brandPoiMatch)) {
       let poiType = '';
-      let distance = 5; // Default 5 miles if not specified
+      let distance = 5 * 1.60934; // Default 5 miles in km
       
       if (propertyPoiMatch) {
         poiType = propertyPoiMatch[1].trim().toLowerCase();
@@ -164,14 +173,35 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         }
       } else if (simplePoiMatch) {
         poiType = simplePoiMatch[1].trim().toLowerCase();
-        distance = 5 * 1.60934; // Default 5 miles in km
+      } else if (brandPoiMatch) {
+        poiType = brandPoiMatch[1].trim().toLowerCase();
+        
+        // If distance is specified in the brand query
+        if (brandPoiMatch[2]) {
+          distance = parseFloat(brandPoiMatch[2]);
+          if (lowerQuery.includes('mile') || lowerQuery.includes('mi')) {
+            distance = distance * 1.60934; // Convert miles to km
+          }
+        }
       }
       
       console.log(`Searching for POI type: "${poiType}" within ${distance}km of ${activeProperty.name}`);
       
-      const matchingPois = pois.filter(poi => 
-        poi.type.toLowerCase().includes(poiType.toLowerCase())
-      );
+      // IMPROVED: More flexible POI type matching using includes instead of exact match
+      // Also handle brand names like FedEx that might be stored as "Shipping" or "Logistics"
+      let matchingPois = [];
+      
+      if (poiType === 'fedex') {
+        matchingPois = pois.filter(poi => 
+          poi.name.toLowerCase().includes('fedex') || 
+          (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
+        );
+      } else {
+        matchingPois = pois.filter(poi => 
+          poi.type.toLowerCase().includes(poiType) ||
+          poi.name.toLowerCase().includes(poiType)
+        );
+      }
       
       console.log(`Found ${matchingPois.length} POIs matching "${poiType}"`);
       
@@ -183,7 +213,8 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       console.log(`Found ${nearbyPois.length} ${poiType} locations within ${distance.toFixed(1)}km of ${activeProperty.name}`);
       
       if (nearbyPois.length === 0) {
-        return `I couldn't find any ${poiType} locations within ${distance.toFixed(1)} ${lowerQuery.includes('kilometer') || lowerQuery.includes('km') ? 'kilometers' : 'miles'} of ${activeProperty.name}.`;
+        const distanceInMiles = kmToMiles(distance).toFixed(1);
+        return `I couldn't find any ${poiType} locations within ${distanceInMiles} miles of ${activeProperty.name}.`;
       }
       
       nearbyPois.sort((a, b) => {

@@ -1,3 +1,4 @@
+
 import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
@@ -52,6 +53,11 @@ export function findPOIsNearProperty(
   property: Property,
   maxDistanceKm: number
 ): POI[] {
+  // Enhanced to handle case where no distance is specified
+  if (!maxDistanceKm || maxDistanceKm <= 0) {
+    maxDistanceKm = 8; // Default to 5 miles (8km) if no valid distance
+  }
+  
   return pois.filter(poi => {
     const distance = calculateDistance(
       property.latitude,
