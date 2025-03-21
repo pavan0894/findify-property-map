@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
@@ -11,7 +11,7 @@ import PropertyPopup from '@/components/map/PropertyPopup';
 import MapControls from '@/components/map/MapControls';
 import POIMarker from '@/components/map/POIMarker';
 
-interface MapProps {
+export interface MapProps {
   properties: Property[];
   filteredProperties: Property[];
   pointsOfInterest: POI[];
@@ -21,7 +21,12 @@ interface MapProps {
   maxDistance: number;
 }
 
-const Map = ({
+export interface MapRef {
+  clearPOIs: () => void;
+  showPOIs: (pois: POI[]) => void;
+}
+
+const Map = forwardRef<MapRef, MapProps>(({
   properties,
   filteredProperties,
   pointsOfInterest,
@@ -29,7 +34,7 @@ const Map = ({
   selectedProperty,
   onSelectProperty,
   maxDistance
-}: MapProps) => {
+}: MapProps, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -86,14 +91,10 @@ const Map = ({
   }, []);
 
   // Make these methods available through the component ref
-  React.useImperativeHandle(
-    React.createRef(),
-    () => ({
-      clearPOIs,
-      showPOIs
-    }),
-    [clearPOIs, showPOIs]
-  );
+  useImperativeHandle(ref, () => ({
+    clearPOIs,
+    showPOIs
+  }), [clearPOIs, showPOIs]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
@@ -155,6 +156,8 @@ const Map = ({
       )}
     </div>
   );
-};
+});
+
+Map.displayName = 'Map';
 
 export default Map;

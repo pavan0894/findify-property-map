@@ -1,12 +1,11 @@
-
 import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
 // Update to use the provided Mapbox token
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtOGpjOHAycDBtNWMya29wYTM2aG9jc2QifQ.up5b4_cPIF_zj6O2rPjgjA';
 
-// Darker CBRE Green color
-export const CBRE_GREEN = '#005c2b';
+// Updated CBRE Green color
+export const CBRE_GREEN = '#003f2d';
 
 // Calculate distance between two points using the Haversine formula
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
