@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -74,7 +73,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
     setInputValue('');
     setIsThinking(true);
     
-    // Simulate processing delay
     setTimeout(() => {
       const response = processUserQuery(inputValue);
       addMessage(response, 'bot');
@@ -89,10 +87,26 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
   };
 
   const processUserQuery = (query: string): string => {
-    // Convert query to lowercase for easier matching
     const lowerQuery = query.toLowerCase();
     
-    // Check if asking about properties within a distance of a POI type
+    if (/^(hi|hello|hey|greetings)/.test(lowerQuery)) {
+      return "Hello! I can help you find information about warehouses and points of interest. Try asking about properties near specific places, or properties with certain features.";
+    }
+    
+    if (/how many (properties|warehouses) (are there|do you have|are available)/.test(lowerQuery) || 
+        /^(show|list|tell me about) (all|the) (properties|warehouses)/.test(lowerQuery)) {
+      const propertyLinks = properties.slice(0, 5).map(property => 
+        `<a href="#" class="text-primary hover:underline" data-property-id="${property.id}">${property.name}</a>`
+      ).join(', ');
+      
+      return `I have information on ${properties.length} properties. Here are a few examples: ${propertyLinks}. Click on any property to see more details.`;
+    }
+    
+    if (/what (types of|kind of|) (poi|point of interest|places|locations)/.test(lowerQuery)) {
+      const uniqueTypes = Array.from(new Set(pois.map(poi => poi.type)));
+      return `I can help you find properties near various points of interest, including: ${uniqueTypes.join(', ')}. Try asking something like "Show properties within 2 miles of a coffee shop".`;
+    }
+    
     const distanceRegex = /within\s+(\d+(?:\.\d+)?)\s*(miles?|mi|kilometers?|km)\s+(?:of|from)\s+(?:a|an)?\s*(.+)/i;
     const distanceMatch = lowerQuery.match(distanceRegex);
     
@@ -101,10 +115,8 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       const unit = distanceMatch[2].toLowerCase();
       const poiType = distanceMatch[3].trim();
       
-      // Convert to km if in miles
       const distanceKm = unit.startsWith('m') ? distance * 1.60934 : distance;
       
-      // Find POIs of the requested type
       const matchedPOIs = pois.filter(poi => 
         poi.type.toLowerCase().includes(poiType)
       );
@@ -113,7 +125,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         return `I couldn't find any points of interest matching "${poiType}". Try something like "coffee shop", "restaurant", or "office".`;
       }
       
-      // Find properties within the specified distance of any matching POI
       const matchedProperties: { property: Property, poi: POI, distance: number }[] = [];
       
       properties.forEach(property => {
@@ -135,7 +146,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         });
       });
       
-      // Sort by distance
       matchedProperties.sort((a, b) => a.distance - b.distance);
       
       if (matchedProperties.length === 0) {
@@ -153,7 +163,26 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return `I found ${matchedProperties.length} properties within ${distance} ${unit.startsWith('m') ? 'miles' : 'kilometers'} of a ${poiType}. Here are the closest ones: ${propertyLinks}. Click on a property name to view details.`;
     }
     
-    // Check if asking for the largest/smallest property
+    const poiTypeRegex = /where (are|is) the (nearest|closest) (.+)/i;
+    const poiTypeMatch = lowerQuery.match(poiTypeRegex);
+    
+    if (poiTypeMatch) {
+      const poiType = poiTypeMatch[3].trim();
+      const matchedPOIs = pois.filter(poi => 
+        poi.type.toLowerCase().includes(poiType)
+      );
+      
+      if (matchedPOIs.length === 0) {
+        return `I couldn't find any points of interest matching "${poiType}". Try something like "coffee shop", "restaurant", or "office".`;
+      }
+      
+      const poiLinks = matchedPOIs.slice(0, 5).map(poi => 
+        `<a href="#" class="text-primary hover:underline" data-poi-id="${poi.id}">${poi.name}</a>`
+      ).join(', ');
+      
+      return `Here are some ${poiType} locations: ${poiLinks}. Click on any location to see it on the map.`;
+    }
+    
     if (lowerQuery.includes('largest') || lowerQuery.includes('biggest')) {
       const sortedBySize = [...properties].sort((a, b) => b.size - a.size);
       const largest = sortedBySize[0];
@@ -168,7 +197,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return `The smallest property is <a href="#" class="text-primary hover:underline" data-property-id="${smallest.id}">${smallest.name}</a> with ${formatSize(smallest.size)}. Click to view details.`;
     }
     
-    // Check if asking for the most/least expensive property
     if (lowerQuery.includes('most expensive') || lowerQuery.includes('highest price')) {
       const sortedByPrice = [...properties].sort((a, b) => b.price - a.price);
       const mostExpensive = sortedByPrice[0];
@@ -183,7 +211,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return `The least expensive property is <a href="#" class="text-primary hover:underline" data-property-id="${leastExpensive.id}">${leastExpensive.name}</a> at ${formatPrice(leastExpensive.price)}. Click to view details.`;
     }
     
-    // Check if asking for properties with specific features
     const featureMatch = lowerQuery.match(/properties?\s+with\s+(.+)/i);
     if (featureMatch) {
       const requestedFeature = featureMatch[1].trim();
@@ -204,8 +231,27 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       return `I found ${matchedProperties.length} properties with features matching "${requestedFeature}". Here are some: ${propertyLinks}. Click on a property name to view details.`;
     }
     
-    // Generic response for other queries
-    return "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'";
+    if (lowerQuery.includes('average price') || lowerQuery.includes('median price')) {
+      const avgPrice = properties.reduce((sum, prop) => sum + prop.price, 0) / properties.length;
+      return `The average price of all properties is ${formatPrice(avgPrice)}.`;
+    }
+    
+    if (lowerQuery.includes('average size') || lowerQuery.includes('median size')) {
+      const avgSize = properties.reduce((sum, prop) => sum + prop.size, 0) / properties.length;
+      return `The average size of all properties is ${formatSize(avgSize)}.`;
+    }
+    
+    if (lowerQuery.includes('newest') || lowerQuery.includes('most recent')) {
+      const newest = [...properties].sort((a, b) => b.year - a.year)[0];
+      return `The newest property is <a href="#" class="text-primary hover:underline" data-property-id="${newest.id}">${newest.name}</a>, built in ${newest.year}. Click to view details.`;
+    }
+    
+    if (lowerQuery.includes('oldest')) {
+      const oldest = [...properties].sort((a, b) => a.year - b.year)[0];
+      return `The oldest property is <a href="#" class="text-primary hover:underline" data-property-id="${oldest.id}">${oldest.name}</a>, built in ${oldest.year}. Click to view details.`;
+    }
+    
+    return "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'\n• 'Where is the nearest restaurant?'\n• 'What types of points of interest are available?'";
   };
 
   const formatSize = (size: number): string => {
@@ -222,15 +268,24 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
   };
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Check if the click was on a property link
     const target = e.target as HTMLElement;
-    if (target.tagName === 'A' && target.hasAttribute('data-property-id')) {
+    if (target.tagName === 'A') {
       e.preventDefault();
-      const propertyId = target.getAttribute('data-property-id');
-      const property = properties.find(p => p.id === propertyId);
       
-      if (property) {
-        onSelectProperty(property);
+      if (target.hasAttribute('data-property-id')) {
+        const propertyId = target.getAttribute('data-property-id');
+        const property = properties.find(p => p.id === propertyId);
+        
+        if (property) {
+          onSelectProperty(property);
+        }
+      } else if (target.hasAttribute('data-poi-id')) {
+        const poiId = target.getAttribute('data-poi-id');
+        const poi = pois.find(p => p.id === poiId);
+        
+        if (poi) {
+          onSelectPOI(poi);
+        }
       }
     }
   };
