@@ -52,8 +52,9 @@ const SearchFilters = ({
     );
   }
 
+  // Removed the glass-panel class to eliminate the white background
   return (
-    <div className={`glass-panel rounded-xl p-4 ${className} animate-fade-in`}>      
+    <div className={`rounded-xl p-4 ${className} animate-fade-in`}>      
       <FiltersContent />
     </div>
   );

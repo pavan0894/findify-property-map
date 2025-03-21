@@ -49,8 +49,8 @@ const Index = () => {
       onShowPOIs={handleShowPOIs}
     >
       <div className="flex flex-col h-full">
-        {/* Top section with filters */}
-        <div className="p-4 bg-gray-50">
+        {/* Removed the bg-gray-50 class to eliminate the white background */}
+        <div className="p-4">
           <SearchFilters />
         </div>
 
