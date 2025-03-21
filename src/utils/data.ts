@@ -22,6 +22,7 @@ export interface POI {
   latitude: number;
   longitude: number;
   icon: any;
+  description?: string; // Added optional description property
 }
 
 // DFW area industrial properties managed by CBRE
@@ -983,4 +984,3 @@ export const formatPrice = (price: number) => {
 export const formatSize = (sqft: number) => {
   return `${(sqft).toLocaleString()} sq ft`;
 };
-
