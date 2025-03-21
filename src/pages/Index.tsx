@@ -54,8 +54,8 @@ const Index = () => {
           <SearchFilters />
         </div>
 
-        {/* Map container */}
-        <div className="h-[50vh] relative">
+        {/* Map container - increased height from 50vh to 70vh */}
+        <div className="h-[70vh] relative">
           {/* Mobile Search Overlay */}
           {isMobile && (
             <MobileSearchOverlay />
