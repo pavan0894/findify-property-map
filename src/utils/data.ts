@@ -1,5 +1,4 @@
-
-import { MapPin, Warehouse, Coffee, ShoppingBag, Utensils, GraduationCap, Landmark, Building2, Briefcase, Bus } from 'lucide-react';
+import { MapPin, Warehouse, Plane, Box, PackageCheck, Package, TruckIcon, Building2, Briefcase, Bus } from 'lucide-react';
 
 export interface Property {
   id: string;
@@ -729,35 +728,240 @@ export const properties: Property[] = [
   }
 ];
 
-// Generate points of interest around DFW area
+// Updated logistics-focused POI types
 const poiTypes = [
-  { type: 'Coffee Shop', icon: Coffee },
-  { type: 'Shopping Center', icon: ShoppingBag },
-  { type: 'Restaurant', icon: Utensils },
-  { type: 'Education', icon: GraduationCap },
-  { type: 'Government', icon: Landmark },
-  { type: 'Office', icon: Building2 },
-  { type: 'Business Park', icon: Briefcase },
-  { type: 'Transit Hub', icon: Bus }
+  { type: 'FedEx', icon: Package },
+  { type: 'UPS', icon: Box },
+  { type: 'Shipping Center', icon: PackageCheck },
+  { type: 'Airport', icon: Plane }
 ];
 
-// Adjust POIs to be in the DFW area (instead of NYC coordinates)
-export const pointsOfInterest: POI[] = Array.from({ length: 30 }, (_, i) => {
-  // Create POIs in the DFW area
-  const baseLat = 32.7767 + (Math.random() - 0.5) * 0.5; // DFW centered
-  const baseLng = -96.7970 + (Math.random() - 0.5) * 0.5;
+// Create realistic logistics POIs in DFW area
+export const pointsOfInterest: POI[] = [
+  // FedEx locations
+  {
+    id: 'poi-1',
+    name: 'FedEx Ship Center',
+    type: 'FedEx',
+    latitude: 32.9072,
+    longitude: -96.8388,
+    icon: Package
+  },
+  {
+    id: 'poi-2',
+    name: 'FedEx Office Print & Ship Center',
+    type: 'FedEx',
+    latitude: 32.8307,
+    longitude: -96.8321,
+    icon: Package
+  },
+  {
+    id: 'poi-3',
+    name: 'FedEx Ground',
+    type: 'FedEx',
+    latitude: 32.9849,
+    longitude: -96.9951,
+    icon: Package
+  },
+  {
+    id: 'poi-4',
+    name: 'FedEx Logistics',
+    type: 'FedEx',
+    latitude: 32.7639,
+    longitude: -97.0935,
+    icon: Package
+  },
+  {
+    id: 'poi-5',
+    name: 'FedEx Freight',
+    type: 'FedEx',
+    latitude: 32.8741,
+    longitude: -97.0425,
+    icon: Package
+  },
+  {
+    id: 'poi-6',
+    name: 'FedEx Ship Center Plano',
+    type: 'FedEx',
+    latitude: 33.0812,
+    longitude: -96.7914,
+    icon: Package
+  },
+  {
+    id: 'poi-7',
+    name: 'FedEx Ship Center Arlington',
+    type: 'FedEx',
+    latitude: 32.7273,
+    longitude: -97.1151,
+    icon: Package
+  },
   
-  const poiType = poiTypes[Math.floor(Math.random() * poiTypes.length)];
+  // UPS locations
+  {
+    id: 'poi-8',
+    name: 'UPS Customer Center',
+    type: 'UPS',
+    latitude: 32.9143,
+    longitude: -96.9071,
+    icon: Box
+  },
+  {
+    id: 'poi-9',
+    name: 'The UPS Store',
+    type: 'UPS',
+    latitude: 32.8553,
+    longitude: -96.7705,
+    icon: Box
+  },
+  {
+    id: 'poi-10',
+    name: 'UPS Freight',
+    type: 'UPS',
+    latitude: 32.7761,
+    longitude: -96.8982,
+    icon: Box
+  },
+  {
+    id: 'poi-11',
+    name: 'UPS Distribution Center',
+    type: 'UPS',
+    latitude: 32.8837,
+    longitude: -96.9613,
+    icon: Box
+  },
+  {
+    id: 'poi-12',
+    name: 'UPS Access Point',
+    type: 'UPS',
+    latitude: 32.7947,
+    longitude: -96.7700,
+    icon: Box
+  },
+  {
+    id: 'poi-13',
+    name: 'UPS Customer Center Fort Worth',
+    type: 'UPS',
+    latitude: 32.7954,
+    longitude: -97.3301,
+    icon: Box
+  },
+  {
+    id: 'poi-14',
+    name: 'UPS Supply Chain Solutions',
+    type: 'UPS',
+    latitude: 32.9001,
+    longitude: -97.0368,
+    icon: Box
+  },
   
-  return {
-    id: `poi-${i + 1}`,
-    name: `${poiType.type} ${i + 1}`,
-    type: poiType.type,
-    latitude: baseLat,
-    longitude: baseLng,
-    icon: poiType.icon
-  };
-});
+  // Shipping Centers
+  {
+    id: 'poi-15',
+    name: 'Alliance Global Logistics Hub',
+    type: 'Shipping Center',
+    latitude: 32.9872,
+    longitude: -97.3188,
+    icon: PackageCheck
+  },
+  {
+    id: 'poi-16',
+    name: 'Intermodal Container Transfer Facility',
+    type: 'Shipping Center',
+    latitude: 32.7713,
+    longitude: -96.7848,
+    icon: PackageCheck
+  },
+  {
+    id: 'poi-17',
+    name: 'BNSF Logistics Center',
+    type: 'Shipping Center',
+    latitude: 32.9718,
+    longitude: -97.2908,
+    icon: PackageCheck
+  },
+  {
+    id: 'poi-18',
+    name: 'Southwest Freight Logistics Center',
+    type: 'Shipping Center',
+    latitude: 32.6894,
+    longitude: -97.0133,
+    icon: PackageCheck
+  },
+  {
+    id: 'poi-19',
+    name: 'Dallas Logistics Hub',
+    type: 'Shipping Center',
+    latitude: 32.6417,
+    longitude: -96.8534,
+    icon: PackageCheck
+  },
+  {
+    id: 'poi-20',
+    name: 'DFW Trade Center',
+    type: 'Shipping Center',
+    latitude: 32.9223,
+    longitude: -97.0376,
+    icon: PackageCheck
+  },
+  
+  // Airports
+  {
+    id: 'poi-21',
+    name: 'Dallas/Fort Worth International Airport',
+    type: 'Airport',
+    latitude: 32.8998,
+    longitude: -97.0403,
+    icon: Plane
+  },
+  {
+    id: 'poi-22',
+    name: 'Dallas Love Field Airport',
+    type: 'Airport',
+    latitude: 32.8481,
+    longitude: -96.8518,
+    icon: Plane
+  },
+  {
+    id: 'poi-23',
+    name: 'Fort Worth Alliance Airport',
+    type: 'Airport',
+    latitude: 32.9872,
+    longitude: -97.3188,
+    icon: Plane
+  },
+  {
+    id: 'poi-24',
+    name: 'Fort Worth Meacham International Airport',
+    type: 'Airport',
+    latitude: 32.8196,
+    longitude: -97.3622,
+    icon: Plane
+  },
+  {
+    id: 'poi-25',
+    name: 'Addison Airport',
+    type: 'Airport',
+    latitude: 32.9686,
+    longitude: -96.8382,
+    icon: Plane
+  },
+  {
+    id: 'poi-26',
+    name: 'Grand Prairie Municipal Airport',
+    type: 'Airport',
+    latitude: 32.6989,
+    longitude: -97.0459,
+    icon: Plane
+  },
+  {
+    id: 'poi-27',
+    name: 'Arlington Municipal Airport',
+    type: 'Airport',
+    latitude: 32.6638,
+    longitude: -97.0944,
+    icon: Plane
+  }
+];
 
 // Helper function to get POI icon by type
 export const getPoiIcon = (poiType: string) => {
@@ -779,3 +983,4 @@ export const formatPrice = (price: number) => {
 export const formatSize = (sqft: number) => {
   return `${(sqft).toLocaleString()} sq ft`;
 };
+

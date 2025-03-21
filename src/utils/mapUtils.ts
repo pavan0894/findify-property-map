@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
 // Update to use a valid public Mapbox token
-export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Aya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
+export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Iya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
 
 // Darker CBRE Green color
 export const CBRE_GREEN = '#005c2b';
@@ -103,10 +103,17 @@ export function fitMapToProperties(map: mapboxgl.Map, properties: Property[]) {
   });
 }
 
-// Filter POIs by type
+// Filter POIs by type - improved to handle logistics-specific POI types
 export function filterPOIsByType(pois: POI[], types: string[]): POI[] {
   if (!types.length) return pois;
-  return pois.filter(poi => types.includes(poi.type));
+  
+  // Improved case-insensitive filtering
+  return pois.filter(poi => 
+    types.some(type => 
+      poi.type.toLowerCase() === type.toLowerCase() ||
+      poi.name.toLowerCase().includes(type.toLowerCase())
+    )
+  );
 }
 
 // Filter properties by distance to POI types

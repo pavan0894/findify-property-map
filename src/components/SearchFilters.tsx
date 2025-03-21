@@ -1,16 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Sliders, 
   Search, 
-  Coffee, 
-  ShoppingBag, 
-  Utensils, 
-  GraduationCap, 
-  Landmark, 
-  Building2, 
-  Briefcase, 
-  Bus,
+  Package,
+  Box,
+  PackageCheck,
+  Plane,
   X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -40,14 +35,10 @@ interface POITypeOption {
 }
 
 const poiTypeOptions: POITypeOption[] = [
-  { type: 'Coffee Shop', icon: Coffee },
-  { type: 'Shopping Center', icon: ShoppingBag },
-  { type: 'Restaurant', icon: Utensils },
-  { type: 'Education', icon: GraduationCap },
-  { type: 'Government', icon: Landmark },
-  { type: 'Office', icon: Building2 },
-  { type: 'Business Park', icon: Briefcase },
-  { type: 'Transit Hub', icon: Bus }
+  { type: 'FedEx', icon: Package },
+  { type: 'UPS', icon: Box },
+  { type: 'Shipping Center', icon: PackageCheck },
+  { type: 'Airport', icon: Plane }
 ];
 
 const SearchFilters = ({
@@ -84,14 +75,12 @@ const SearchFilters = ({
     setSearchQuery('');
   };
 
-  // Handle Enter key press for search
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
 
-  // Filter component content
   const FiltersContent = () => (
     <div className="space-y-6 w-full animate-fade-in">
       <div className="space-y-2">
