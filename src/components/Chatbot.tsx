@@ -58,7 +58,10 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    if (messages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      console.log('Saved messages to localStorage:', messages.length);
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -74,7 +77,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       sender,
       timestamp: new Date()
     };
-    setMessages([...messages, newMessage]);
+    setMessages(prevMessages => [...prevMessages, newMessage]);
   };
 
   const handleToggleChat = () => {
@@ -135,6 +138,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
       
       if (matchedProperty) {
         setActiveProperty(matchedProperty);
+        onSelectProperty(matchedProperty);
         return `I'll now use ${matchedProperty.name} as our reference property for your questions. What would you like to know about it or places nearby?`;
       } else {
         return `I couldn't find a property named "${propertyName}". Please try another property name.`;
@@ -142,37 +146,53 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
     }
     
     const propertyPoiRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|within|in)\s+(\d+(?:\.\d+)?)\s*(?:miles?|mi|km|kilometers?)\s+(?:of|from)?\s+(?:this property|current property|it|selected property)/i;
-    const propertyPoiMatch = lowerQuery.match(propertyPoiRegex);
+    const poiNearPropertyRegex = /(?:find|show|are there|any|where is|location of|nearest)\s+(\w+(?:\s+\w+)*)\s+(?:near|around|close to|by)\s+(?:this property|current property|it|selected property)/i;
     
-    if (propertyPoiMatch && activeProperty) {
-      const poiType = propertyPoiMatch[1].trim().toLowerCase();
-      let distance = parseFloat(propertyPoiMatch[2]);
+    const propertyPoiMatch = lowerQuery.match(propertyPoiRegex);
+    const simplePoiMatch = lowerQuery.match(poiNearPropertyRegex);
+    
+    if (activeProperty && (propertyPoiMatch || simplePoiMatch)) {
+      let poiType = '';
+      let distance = 5; // Default 5 miles if not specified
       
-      if (lowerQuery.includes('mile') || lowerQuery.includes('mi')) {
-        distance = distance * 1.60934;
+      if (propertyPoiMatch) {
+        poiType = propertyPoiMatch[1].trim().toLowerCase();
+        distance = parseFloat(propertyPoiMatch[2]);
+        
+        if (lowerQuery.includes('mile') || lowerQuery.includes('mi')) {
+          distance = distance * 1.60934; // Convert miles to km
+        }
+      } else if (simplePoiMatch) {
+        poiType = simplePoiMatch[1].trim().toLowerCase();
+        distance = 5 * 1.60934; // Default 5 miles in km
       }
       
+      console.log(`Searching for POI type: "${poiType}" within ${distance}km of ${activeProperty.name}`);
+      
       const matchingPois = pois.filter(poi => 
-        poi.type.toLowerCase().includes(poiType)
+        poi.type.toLowerCase().includes(poiType.toLowerCase())
       );
+      
+      console.log(`Found ${matchingPois.length} POIs matching "${poiType}"`);
       
       if (matchingPois.length === 0) {
         return `I couldn't find any points of interest matching "${poiType}". Try something like "restaurant", "coffee shop", or "office".`;
       }
       
-      const nearbypois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+      const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+      console.log(`Found ${nearbyPois.length} ${poiType} locations within ${distance.toFixed(1)}km of ${activeProperty.name}`);
       
-      if (nearbypois.length === 0) {
-        return `I couldn't find any ${poiType} locations within ${distance.toFixed(1)} ${lowerQuery.includes('mile') || lowerQuery.includes('mi') ? 'miles' : 'kilometers'} of ${activeProperty.name}.`;
+      if (nearbyPois.length === 0) {
+        return `I couldn't find any ${poiType} locations within ${distance.toFixed(1)} ${lowerQuery.includes('kilometer') || lowerQuery.includes('km') ? 'kilometers' : 'miles'} of ${activeProperty.name}.`;
       }
       
-      nearbypois.sort((a, b) => {
+      nearbyPois.sort((a, b) => {
         const distA = calculateDistance(activeProperty.latitude, activeProperty.longitude, a.latitude, a.longitude);
         const distB = calculateDistance(activeProperty.latitude, activeProperty.longitude, b.latitude, b.longitude);
         return distA - distB;
       });
       
-      const poiLinks = nearbypois.slice(0, 5).map(poi => {
+      const poiLinks = nearbyPois.slice(0, 5).map(poi => {
         const dist = calculateDistance(activeProperty.latitude, activeProperty.longitude, poi.latitude, poi.longitude);
         const distStr = lowerQuery.includes('kilometer') || lowerQuery.includes('km') 
           ? `${dist.toFixed(1)} km` 
@@ -181,7 +201,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
         return `<a href="#" class="text-primary hover:underline" data-poi-id="${poi.id}">${poi.name}</a> (${distStr})`;
       }).join(', ');
       
-      return `I found ${nearbypois.length} ${poiType} locations near ${activeProperty.name}. Here are the closest ones: ${poiLinks}. Click on any location to see it on the map.`;
+      return `I found ${nearbyPois.length} ${poiType} locations near ${activeProperty.name}. Here are the closest ones: ${poiLinks}. Click on any location to see it on the map.`;
     }
     
     if (/how many (properties|warehouses) (are there|do you have|are available)/.test(lowerQuery) || 
@@ -343,7 +363,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI }: ChatbotPro
     }
     
     if (activeProperty) {
-      return `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• 'Find coffee shops within 2 miles of this property'\n• 'Where is the nearest restaurant to this property?'\n• 'Show me FedEx locations around this property'\n\nOr you can clear the selected property with 'clear property'.`;
+      return `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• 'Find coffee shops within 2 miles of this property'\n• 'Where is the nearest restaurant to this property?'\n• 'Show me FedEx locations around this property'\n\nOr you can select a different property with 'Use property [name]'.`;
     }
     
     return "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Use property Gateway Logistics Center'\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'\n• 'Where is the nearest restaurant?'\n• 'What types of points of interest are available?'";
