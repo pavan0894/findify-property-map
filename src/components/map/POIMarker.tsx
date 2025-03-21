@@ -103,7 +103,7 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
           <div class="p-3">
             <h3 class="font-medium text-base">${poi.name}</h3>
             <p class="text-sm text-gray-500 mt-1">${poi.type}</p>
-            ${poi.description ? `<p class="text-sm mt-2">${poi.description}</p>` : ''}
+            ${poi.hasOwnProperty('description') && poi.description ? `<p class="text-sm mt-2">${poi.description}</p>` : ''}
             <div class="text-xs text-gray-400 mt-2">
               Lat: ${poi.latitude.toFixed(5)}, Lng: ${poi.longitude.toFixed(5)}
             </div>
