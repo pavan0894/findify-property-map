@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -46,7 +45,7 @@ const Map = ({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: initialCenter,
-      zoom: 12,
+      zoom: 10,
       pitch: 0,
       attributionControl: false
     });
@@ -82,12 +81,7 @@ const Map = ({
       markerDiv.className = 'relative';
       
       const markerIcon = document.createElement('div');
-      markerIcon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full animate-bounce shadow-md';
-      
-      // Add a small delay to each bounce animation for a more natural feel
-      const randomDelay = Math.random() * 1;
-      markerIcon.style.animationDelay = `${randomDelay}s`;
-      markerIcon.style.animationDuration = '2s';
+      markerIcon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full shadow-md';
       
       // Add warehouse icon
       const icon = document.createElement('div');
