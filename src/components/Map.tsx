@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -47,7 +48,8 @@ const Map = ({
       center: initialCenter,
       zoom: 10,
       pitch: 0,
-      attributionControl: false
+      attributionControl: false,
+      renderWorldCopies: false
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
@@ -77,23 +79,21 @@ const Map = ({
 
     // Add markers for filtered properties
     filteredProperties.forEach(property => {
-      const markerDiv = document.createElement('div');
-      markerDiv.className = 'relative';
+      const markerEl = document.createElement('div');
+      markerEl.className = 'marker-container';
+      markerEl.style.position = 'relative';
       
-      const markerIcon = document.createElement('div');
-      markerIcon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full shadow-md';
-      
-      // Add warehouse icon
       const icon = document.createElement('div');
+      icon.className = 'flex items-center justify-center h-7 w-7 bg-primary text-white rounded-full shadow-md';
       icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>';
-      markerIcon.appendChild(icon);
       
-      markerDiv.appendChild(markerIcon);
+      markerEl.appendChild(icon);
       
       const marker = new mapboxgl.Marker({
-        element: markerDiv,
-        anchor: 'bottom',
-        offset: [0, 0]
+        element: markerEl,
+        anchor: 'center', // Change from 'bottom' to 'center' for better stability
+        pitchAlignment: 'map', // Keep pin aligned with map pitch
+        rotationAlignment: 'map', // Keep pin aligned with map rotation
       })
         .setLngLat([property.longitude, property.latitude])
         .addTo(map.current!);
@@ -112,23 +112,21 @@ const Map = ({
     );
 
     excludedProperties.forEach(property => {
-      const markerDiv = document.createElement('div');
-      markerDiv.className = 'relative';
+      const markerEl = document.createElement('div');
+      markerEl.className = 'marker-container';
+      markerEl.style.position = 'relative';
       
-      const markerIcon = document.createElement('div');
-      markerIcon.className = 'flex items-center justify-center h-7 w-7 bg-gray-400 text-white rounded-full shadow-md opacity-50';
-      
-      // Add warehouse icon
       const icon = document.createElement('div');
+      icon.className = 'flex items-center justify-center h-7 w-7 bg-gray-400 text-white rounded-full shadow-md opacity-50';
       icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>';
-      markerIcon.appendChild(icon);
       
-      markerDiv.appendChild(markerIcon);
+      markerEl.appendChild(icon);
       
       const marker = new mapboxgl.Marker({
-        element: markerDiv,
-        anchor: 'bottom',
-        offset: [0, 0]
+        element: markerEl,
+        anchor: 'center', // Change from 'bottom' to 'center' for better stability
+        pitchAlignment: 'map', // Keep pin aligned with map pitch
+        rotationAlignment: 'map', // Keep pin aligned with map rotation
       })
         .setLngLat([property.longitude, property.latitude])
         .addTo(map.current!);
@@ -153,11 +151,12 @@ const Map = ({
 
     // Add markers for POIs
     pointsOfInterest.forEach(poi => {
-      const markerDiv = document.createElement('div');
-      markerDiv.className = 'relative';
+      const markerEl = document.createElement('div');
+      markerEl.className = 'marker-container';
+      markerEl.style.position = 'relative';
       
-      const markerIcon = document.createElement('div');
-      markerIcon.className = 'flex items-center justify-center h-6 w-6 bg-white text-primary border border-primary/30 rounded-full shadow-md';
+      const icon = document.createElement('div');
+      icon.className = 'flex items-center justify-center h-6 w-6 bg-white text-primary border border-primary/30 rounded-full shadow-md';
       
       // Add POI icon
       const IconComponent = getPoiIcon(poi.type);
@@ -193,13 +192,14 @@ const Map = ({
         iconSvg.innerHTML = '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
       }
       
-      markerIcon.appendChild(iconSvg);
-      markerDiv.appendChild(markerIcon);
+      icon.appendChild(iconSvg);
+      markerEl.appendChild(icon);
       
       const marker = new mapboxgl.Marker({
-        element: markerDiv,
-        anchor: 'bottom',
-        offset: [0, 0]
+        element: markerEl,
+        anchor: 'center', // Change from 'bottom' to 'center' for better stability
+        pitchAlignment: 'map', // Keep pin aligned with map pitch
+        rotationAlignment: 'map', // Keep pin aligned with map rotation
       })
         .setLngLat([poi.longitude, poi.latitude])
         .addTo(map.current!);
