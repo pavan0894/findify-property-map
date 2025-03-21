@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Warehouse, Search, Menu, X } from 'lucide-react';
+import { Warehouse } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -23,13 +22,6 @@ const Navbar = ({ toggleSidebar, sidebarOpen }: NavbarProps) => {
         </div>
         
         <div className="flex items-center gap-3">
-          {!isMobile && (
-            <div className="flex items-center bg-secondary/50 rounded-full px-3 py-1.5 gap-2 border border-border/50">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Search properties...</span>
-            </div>
-          )}
-          
           <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90">
             Get Started
           </Button>
