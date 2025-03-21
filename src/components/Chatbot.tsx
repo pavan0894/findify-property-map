@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -20,6 +21,7 @@ interface ChatbotProps {
   onSelectProperty: (property: Property) => void;
   onSelectPOI: (poi: POI) => void;
   onShowPOIs: (pois: POI[]) => void;
+  embedded?: boolean;
 }
 
 interface Message {
@@ -31,8 +33,8 @@ interface Message {
 
 const STORAGE_KEY = 'property-assistant-chat';
 
-const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs }: ChatbotProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, embedded = false }: ChatbotProps) => {
+  const [isOpen, setIsOpen] = useState(embedded);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
     const savedChat = localStorage.getItem(STORAGE_KEY);
@@ -111,6 +113,8 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs }
   };
 
   const handleCloseChat = () => {
+    if (embedded) return;
+    
     localStorage.removeItem(STORAGE_KEY);
     setMessages([{
       id: '1',
@@ -454,6 +458,107 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs }
     }
   };
 
+  // For the embedded version, display a full-height chat interface
+  if (embedded) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Bot className="h-4 w-4 text-primary" />
+            </div>
+            <h3 className="font-medium">
+              Property Assistant
+              {activeProperty && (
+                <span className="ml-1 text-xs text-primary font-normal">
+                  ({activeProperty.name})
+                </span>
+              )}
+            </h3>
+          </div>
+        </div>
+
+        <div 
+          className="flex-1 p-4 overflow-y-auto space-y-4"
+          onClick={handleMessageClick}
+        >
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-2xl ${
+                  message.sender === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-tr-none'
+                    : 'bg-secondary rounded-tl-none'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  {message.sender === 'bot' && (
+                    <Bot className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <div 
+                      className="text-sm"
+                      dangerouslySetInnerHTML={{ __html: message.content }}
+                    />
+                    <p className="text-xs opacity-70 mt-1">
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  {message.sender === 'user' && (
+                    <User className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          {isThinking && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] p-3 bg-secondary rounded-2xl rounded-tl-none">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-0"></span>
+                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-150"></span>
+                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-300"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="p-4 border-t">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder={activeProperty 
+                ? `Ask about ${activeProperty.name}...` 
+                : "Ask about properties..."
+              }
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 bg-secondary/50 border-input/50"
+              disabled={isThinking}
+            />
+            <Button
+              onClick={handleSendMessage}
+              size="icon"
+              className="h-10 w-10 rounded-full"
+              disabled={!inputValue.trim() || isThinking}
+            >
+              <SendHorizonal className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For the floating version, use the original design
   return (
     <>
       {!isOpen && (
@@ -587,4 +692,3 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs }
 };
 
 export default Chatbot;
-

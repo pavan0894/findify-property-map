@@ -8,6 +8,8 @@ import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import PropertyDetails from '@/components/PropertyDetails';
 import PropertyTable from '@/components/property/PropertyTable';
 import SearchFilters from '@/components/SearchFilters';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import Chatbot from '@/components/Chatbot';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -40,6 +42,55 @@ const Index = () => {
     setShowPropertyDetails(false);
   };
   
+  // Responsive layout based on screen size
+  if (isMobile) {
+    return (
+      <MainLayout 
+        properties={properties}
+        pointsOfInterest={pointsOfInterest}
+        onSelectProperty={handleSelectProperty}
+        onSelectPOI={handleSelectPOI}
+        onShowPOIs={handleShowPOIs}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-4">
+            <SearchFilters />
+          </div>
+
+          <div className="h-[70vh] relative">
+            <MobileSearchOverlay />
+            <Map
+              properties={properties}
+              filteredProperties={properties}
+              pointsOfInterest={pointsOfInterest}
+              selectedPOI={selectedPOI}
+              selectedProperty={selectedProperty}
+              onSelectProperty={handleSelectProperty}
+              maxDistance={5}
+              ref={mapRef}
+            />
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4">
+            <PropertyTable
+              properties={properties}
+              onSelectProperty={handleSelectProperty}
+              selectedProperty={selectedProperty}
+            />
+          </div>
+        </div>
+        
+        <PropertyDetails
+          property={selectedProperty}
+          onClose={handleClosePropertyDetails}
+          allPOIs={pointsOfInterest}
+          onSelectPOI={handleSelectPOI}
+          isOpen={showPropertyDetails}
+        />
+      </MainLayout>
+    );
+  }
+  
   return (
     <MainLayout 
       properties={properties}
@@ -48,43 +99,66 @@ const Index = () => {
       onSelectPOI={handleSelectPOI}
       onShowPOIs={handleShowPOIs}
     >
-      <div className="flex flex-col h-full">
-        {/* Removed the bg-gray-50 class to eliminate the white background */}
+      <div className="h-[calc(100vh-4rem)] flex flex-col">
         <div className="p-4">
           <SearchFilters />
         </div>
 
-        {/* Map container - increased height from 50vh to 70vh */}
-        <div className="h-[70vh] relative">
-          {/* Mobile Search Overlay */}
-          {isMobile && (
-            <MobileSearchOverlay />
-          )}
-          
-          {/* Map */}
-          <Map
-            properties={properties}
-            filteredProperties={properties}
-            pointsOfInterest={pointsOfInterest}
-            selectedPOI={selectedPOI}
-            selectedProperty={selectedProperty}
-            onSelectProperty={handleSelectProperty}
-            maxDistance={5}
-            ref={mapRef}
-          />
-        </div>
-        
-        {/* Property Table section */}
-        <div className="flex-1 overflow-auto p-4">
-          <PropertyTable
-            properties={properties}
-            onSelectProperty={handleSelectProperty}
-            selectedProperty={selectedProperty}
-          />
+        <div className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Chat Panel */}
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="h-full">
+              <div className="h-full bg-background border-r p-0">
+                <Chatbot
+                  properties={properties}
+                  pois={pointsOfInterest}
+                  onSelectProperty={handleSelectProperty}
+                  onSelectPOI={handleSelectPOI}
+                  onShowPOIs={handleShowPOIs}
+                  embedded={true}
+                />
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            {/* Map and Table Panel */}
+            <ResizablePanel defaultSize={75} className="h-full">
+              <ResizablePanelGroup direction="vertical" className="h-full">
+                {/* Map */}
+                <ResizablePanel defaultSize={60} className="h-full">
+                  <div className="relative h-full">
+                    <Map
+                      properties={properties}
+                      filteredProperties={properties}
+                      pointsOfInterest={pointsOfInterest}
+                      selectedPOI={selectedPOI}
+                      selectedProperty={selectedProperty}
+                      onSelectProperty={handleSelectProperty}
+                      maxDistance={5}
+                      ref={mapRef}
+                    />
+                  </div>
+                </ResizablePanel>
+                
+                <ResizableHandle withHandle />
+                
+                {/* Property Table */}
+                <ResizablePanel defaultSize={40}>
+                  <div className="h-full overflow-auto p-4">
+                    <PropertyTable
+                      properties={properties}
+                      onSelectProperty={handleSelectProperty}
+                      selectedProperty={selectedProperty}
+                    />
+                  </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
       </div>
       
-      {/* Property Details Modal */}
       <PropertyDetails
         property={selectedProperty}
         onClose={handleClosePropertyDetails}

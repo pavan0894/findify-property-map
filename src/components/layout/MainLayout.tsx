@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Navbar from '@/components/Navbar';
-import Chatbot from '@/components/Chatbot';
 import { Property, POI } from '@/utils/data';
 
 interface MainLayoutProps {
@@ -28,14 +27,6 @@ const MainLayout = ({
       <main className="flex-1 flex flex-col pt-16">
         {children}
       </main>
-      
-      <Chatbot
-        properties={properties}
-        pois={pointsOfInterest}
-        onSelectProperty={onSelectProperty}
-        onSelectPOI={onSelectPOI}
-        onShowPOIs={onShowPOIs}
-      />
     </div>
   );
 };
