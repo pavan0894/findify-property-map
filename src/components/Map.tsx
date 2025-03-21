@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -94,9 +93,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style - fix the TypeScript error by using the correct signature
-    // The Mapbox GL TypeScript definition expects style as string only
-    map.setStyle(style);
+    // Apply new style - this is the correct way to call setStyle according to Mapbox GL types
+    map.setStyle(style as mapboxgl.Style);
     
     // Re-add event listeners after style change
     map.on('style.load', () => {
@@ -130,55 +128,46 @@ const Map = forwardRef<MapRef, MapProps>(({
     });
   }, [map]);
 
-  // Ensure map and properties are stable before rendering markers
   const stableProperties = useRef(properties);
   
   useEffect(() => {
     stableProperties.current = properties;
   }, [properties]);
 
-  // When selectedPOI changes, add it to activePOIs if it's not already there
   useEffect(() => {
     if (selectedPOI && !activePOIs.some(poi => poi.id === selectedPOI.id)) {
       setActivePOIs(prev => [...prev, selectedPOI]);
     }
   }, [selectedPOI]);
 
-  // When selectedProperty changes, show nearby POIs
   useEffect(() => {
     if (selectedProperty && map) {
-      // Find POIs near this property
       const nearbyPOIs = findPOIsNearProperty(
         pointsOfInterest,
         selectedProperty,
-        maxDistance * 1.60934 // Convert miles to km
+        maxDistance * 1.60934
       );
       
-      // Update active POIs
       setActivePOIs(nearbyPOIs);
       
       console.log(`Found ${nearbyPOIs.length} POIs near selected property`);
     }
   }, [selectedProperty, pointsOfInterest, maxDistance, map]);
 
-  // Debug information
   useEffect(() => {
     if (mapLoaded && map) {
       console.log(`Map loaded with ${properties.length} total properties, ${filteredProperties.length} filtered properties, and ${activePOIs.length} active POIs`);
     }
   }, [mapLoaded, map, properties.length, filteredProperties.length, activePOIs.length]);
 
-  // Method to clear POIs
   const clearPOIs = useCallback(() => {
     setActivePOIs([]);
   }, []);
 
-  // Method to set specific POIs
   const showPOIs = useCallback((pois: POI[]) => {
     setActivePOIs(pois);
   }, []);
 
-  // Make these methods available through the component ref
   useImperativeHandle(ref, () => ({
     clearPOIs,
     showPOIs
