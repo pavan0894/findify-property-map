@@ -57,7 +57,14 @@ const MapInitializer = ({
         console.log('Map loaded successfully');
         setIsInitialized(true);
         onMapReady(mapInstance);
-        fitMapToProperties(mapInstance, properties);
+        
+        // Fit map to properties only after it's fully loaded
+        setTimeout(() => {
+          if (properties.length > 0) {
+            console.log(`Fitting map to ${properties.length} properties`);
+            fitMapToProperties(mapInstance, properties);
+          }
+        }, 100);
       });
       
       // Handle errors
@@ -67,6 +74,7 @@ const MapInitializer = ({
       });
 
       return () => {
+        console.log('Cleaning up map instance');
         if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;

@@ -15,8 +15,11 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   
   useEffect(() => {
-    // Make sure map exists and is fully loaded
-    if (!map) return;
+    // Make sure map exists
+    if (!map) {
+      console.log('Map not available for marker', property.id);
+      return;
+    }
     
     // If marker already exists, remove it first to prevent duplicates
     if (markerRef.current) {
@@ -24,26 +27,20 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
       markerRef.current = null;
     }
     
-    // Only create marker when map is fully loaded
+    // Wait for map to be fully loaded
     if (!map.loaded()) {
+      console.log('Map not loaded yet for marker', property.id);
       const onMapLoad = () => {
-        createAndAddMarker();
+        createMarker();
         map.off('load', onMapLoad);
       };
       map.on('load', onMapLoad);
       return;
     }
     
-    createAndAddMarker();
+    createMarker();
     
-    return () => {
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
-      }
-    };
-    
-    function createAndAddMarker() {
+    function createMarker() {
       try {
         // Create marker element
         const markerEl = document.createElement('div');
@@ -63,13 +60,13 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         
         markerEl.appendChild(icon);
         
-        // Create the marker
+        // Create the marker and add to map
         const marker = new mapboxgl.Marker({
           element: markerEl,
           anchor: 'bottom',
         }).setLngLat([property.longitude, property.latitude]);
         
-        // Check that map is valid before adding marker
+        // Only add marker if map container exists
         if (map && map.getContainer()) {
           marker.addTo(map);
           
@@ -79,11 +76,21 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
           });
           
           markerRef.current = marker;
+          console.log('Marker added for property', property.id);
+        } else {
+          console.error('Map container not available for property', property.id);
         }
       } catch (error) {
         console.error('Error creating marker for property', property.id, error);
       }
     }
+    
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+    };
   }, [map, property, isFiltered, onSelectProperty]);
   
   return null;

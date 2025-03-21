@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
@@ -51,6 +51,20 @@ const Map = ({
     if (!map) return;
     fitMapToProperties(map, properties);
   }, [map, properties]);
+
+  // Ensure map and properties are stable before rendering markers
+  const stableProperties = useRef(properties);
+  
+  useEffect(() => {
+    stableProperties.current = properties;
+  }, [properties]);
+
+  // Debug information
+  useEffect(() => {
+    if (mapLoaded && map) {
+      console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
+    }
+  }, [mapLoaded, map, properties.length, filteredProperties.length]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
