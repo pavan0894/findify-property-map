@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -95,8 +94,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     // Clear previous event listeners to prevent duplicates
     map.off('style.load');
     
-    // Apply new style with the correct arguments as required by mapbox-gl
-    map.setStyle(style, {} as mapboxgl.StyleOptions);
+    // Apply new style with correct typescript types
+    map.setStyle(style);
     
     // Re-add event listeners after style change
     map.on('style.load', () => {

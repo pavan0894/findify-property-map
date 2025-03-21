@@ -64,7 +64,7 @@ const MapInitializer = ({
         console.log('Map style loaded:', currentStyle.name);
         
         // Only add 3D buildings if we're not in satellite mode
-        if (!currentStyle.name.includes('Satellite') && !mapInstance.getLayer('3d-buildings')) {
+        if (!currentStyle.name?.includes('Satellite') && !mapInstance.getLayer('3d-buildings')) {
           mapInstance.addLayer({
             'id': '3d-buildings',
             'source': 'composite',
