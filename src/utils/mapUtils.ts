@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import { Property, POI } from './data';
 
 // Update to use the provided Mapbox token
-export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtN3ViNGVzdzAyY3Iya3F2bmYybGE2M3kifQ.QgzTrAt778bRFOYq_MumCw';
+export const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF2YW4wODk0IiwiYSI6ImNtOGpjOHAycDBtNWMya29wYTM2aG9jc2QifQ.up5b4_cPIF_zj6O2rPjgjA';
 
 // Darker CBRE Green color
 export const CBRE_GREEN = '#005c2b';
