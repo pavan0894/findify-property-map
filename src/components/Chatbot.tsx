@@ -112,90 +112,97 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setInputValue('');
     setIsThinking(true);
     
-    let response;
-    if (useAI && openAIKey) {
-      try {
+    try {
+      if (useAI && openAIKey) {
+        const systemPrompt = `You are a property assistant AI helping with a real estate application. 
+You have access to ${properties.length} properties and ${pois.length} points of interest.
+${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 'The user has not selected a specific property yet.'}
+
+Your primary functions:
+1. Help find properties matching specific criteria (size, price, features)
+2. Locate points of interest near properties
+3. Provide information about properties
+
+Special commands you should recognize:
+- If a user wants to select a property, respond with "I'll use [PROPERTY_NAME] as our reference property."
+- If a user wants to find nearby locations, respond with "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
+
+Be helpful, conversational, and focus on property information.`;
+
         const chatHistory: ChatMessage[] = [
-          {
-            role: 'system',
-            content: `You are a property assistant AI. You help users find information about warehouse properties and nearby points of interest.
-            
-Here's the context:
-1. There are ${properties.length} properties in the database.
-2. There are ${pois.length} points of interest.
-3. ${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 'The user has not selected a specific property yet.'}
-
-Your job is to help the user find properties that match their criteria and points of interest near properties.
-When a user wants to select a specific property, extract the property name and respond with: "I'll use [PROPERTY_NAME] as our reference property."
-When a user wants to find nearby locations, respond with: "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
-
-Be helpful, concise, and focus on answering property-related questions.`
-          },
+          { role: 'system', content: systemPrompt },
           ...messages.slice(-10).map(msg => ({
             role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
             content: msg.content
           })),
-          {
-            role: 'user' as const,
-            content: inputValue
-          }
+          { role: 'user', content: inputValue }
         ];
 
-        response = await getOpenAIResponse(chatHistory, openAIKey);
-        
-        const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
-        const propertyMatch = response.match(propertyRegex);
-        
-        if (propertyMatch) {
-          const propertyName = propertyMatch[1].trim();
-          const foundProperty = findBestPropertyMatch(propertyName, properties);
+        try {
+          console.log('Calling OpenAI with chat history:', chatHistory.length, 'messages');
+          const aiResponse = await getOpenAIResponse(chatHistory, openAIKey);
           
-          if (foundProperty) {
-            setActiveProperty(foundProperty);
-            onSelectProperty(foundProperty);
-            toast({
-              title: "Property Selected",
-              description: `Now using ${foundProperty.name} as the active property.`,
-            });
-          }
-        }
-        
-        const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
-        const poiMatch = response.match(poiRegex);
-        
-        if (poiMatch && activeProperty) {
-          const poiType = poiMatch[2].trim().toLowerCase();
-          const matchingPois = findMatchingPOIs(poiType, pois);
+          // Process the AI response
+          console.log('Received AI response:', aiResponse.substring(0, 100) + '...');
           
-          if (matchingPois.length > 0) {
-            const distance = 5 * 1.60934;
-            const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+          const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
+          const propertyMatch = aiResponse.match(propertyRegex);
+          
+          if (propertyMatch) {
+            const propertyName = propertyMatch[1].trim();
+            const foundProperty = findBestPropertyMatch(propertyName, properties);
             
-            if (nearbyPois.length > 0) {
-              onShowPOIs(nearbyPois);
+            if (foundProperty) {
+              setActiveProperty(foundProperty);
+              onSelectProperty(foundProperty);
               toast({
-                title: `Found ${nearbyPois.length} locations`,
-                description: `Showing ${poiType} locations near ${activeProperty.name}`,
+                title: "Property Selected",
+                description: `Now using ${foundProperty.name} as the active property.`,
               });
             }
           }
+          
+          const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
+          const poiMatch = aiResponse.match(poiRegex);
+          
+          if (poiMatch && activeProperty) {
+            const poiType = poiMatch[2].trim().toLowerCase();
+            const matchingPois = findMatchingPOIs(poiType, pois);
+            
+            if (matchingPois.length > 0) {
+              const distance = 5 * 1.60934;
+              const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+              
+              if (nearbyPois.length > 0) {
+                onShowPOIs(nearbyPois);
+                toast({
+                  title: `Found ${nearbyPois.length} locations`,
+                  description: `Showing ${poiType} locations near ${activeProperty.name}`,
+                });
+              }
+            }
+          }
+          
+          addMessage(aiResponse, 'bot');
+        } catch (error) {
+          console.error('Error getting AI response:', error);
+          const fallbackResponse = 'Sorry, I had trouble connecting to my AI brain. Using local responses instead...\n\n' + 
+                                  generateAIResponse(inputValue);
+          addMessage(fallbackResponse, 'bot');
         }
-      } catch (error) {
-        console.error('Error getting AI response:', error);
-        response = 'Sorry, I had trouble connecting to my AI brain. Using local responses instead...';
-        response += '\n\n' + generateAIResponse(inputValue);
+      } else {
+        // Use the local implementation if AI is disabled or no API key
+        setTimeout(() => {
+          const response = generateAIResponse(inputValue);
+          addMessage(response, 'bot');
+        }, Math.random() * 800 + 300); // Simulate thinking time
       }
-    } else {
-      setTimeout(() => {
-        response = generateAIResponse(inputValue);
-        addMessage(response, 'bot');
-        setIsThinking(false);
-      }, Math.random() * 800 + 300);
-      return;
+    } catch (error) {
+      console.error('Error in message handling:', error);
+      addMessage("I'm sorry, I encountered an error processing your request. Please try again.", 'bot');
+    } finally {
+      setIsThinking(false);
     }
-    
-    addMessage(response, 'bot');
-    setIsThinking(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -924,3 +931,4 @@ Be helpful, concise, and focus on answering property-related questions.`
 };
 
 export default Chatbot;
+

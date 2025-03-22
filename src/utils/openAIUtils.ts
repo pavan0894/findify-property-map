@@ -12,6 +12,8 @@ export async function getOpenAIResponse(
   model: string = 'gpt-4o-mini'
 ): Promise<string> {
   try {
+    console.log('Sending request to OpenAI API with model:', model);
+    
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
@@ -22,7 +24,7 @@ export async function getOpenAIResponse(
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 1000
       })
     });
 
@@ -36,7 +38,7 @@ export async function getOpenAIResponse(
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
-    return 'Sorry, I had trouble connecting to my AI brain. Please try again later.';
+    throw new Error('Failed to get response from OpenAI');
   }
 }
 
