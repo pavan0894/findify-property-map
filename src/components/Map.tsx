@@ -10,7 +10,6 @@ import MapMarker from '@/components/map/MapMarker';
 import PropertyPopup from '@/components/map/PropertyPopup';
 import MapControls from '@/components/map/MapControls';
 import POIMarker from '@/components/map/POIMarker';
-import MapStyleSelector from '@/components/map/MapStyleSelector';
 
 export interface MapProps {
   properties: Property[];
@@ -42,8 +41,6 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
-  const [currentMapStyle, setCurrentMapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
-  const [is3DEnabled, setIs3DEnabled] = useState<boolean>(true);
 
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
@@ -61,67 +58,6 @@ const Map = forwardRef<MapRef, MapProps>(({
     if (!map) return;
     fitMapToProperties(map, properties);
   }, [map, properties]);
-
-  const handleToggle3D = useCallback(() => {
-    if (!map) return;
-    
-    setIs3DEnabled(prev => {
-      const newValue = !prev;
-      
-      if (newValue) {
-        map.easeTo({
-          pitch: 45,
-          duration: 1000
-        });
-      } else {
-        map.easeTo({
-          pitch: 0,
-          duration: 1000
-        });
-      }
-      
-      return newValue;
-    });
-  }, [map]);
-
-  const handleStyleChange = useCallback((style: string) => {
-    if (!map) return;
-    console.log('Changing map style to:', style);
-    setCurrentMapStyle(style);
-    
-    map.off('style.load');
-    // Fix: Properly call setStyle with required arguments
-    map.setStyle(style, { diff: false });
-    
-    map.on('style.load', () => {
-      console.log('Style loaded successfully:', map.getStyle().name);
-      
-      if (!map.getStyle().name?.includes('Satellite') && !map.getLayer('3d-buildings')) {
-        map.addLayer({
-          'id': '3d-buildings',
-          'source': 'composite',
-          'source-layer': 'building',
-          'filter': ['==', 'extrude', 'true'],
-          'type': 'fill-extrusion',
-          'minzoom': 15,
-          'paint': {
-            'fill-extrusion-color': '#aaa',
-            'fill-extrusion-height': [
-              'interpolate', ['linear'], ['zoom'],
-              15, 0,
-              16, ['get', 'height']
-            ],
-            'fill-extrusion-base': [
-              'interpolate', ['linear'], ['zoom'],
-              15, 0,
-              16, ['get', 'min_height']
-            ],
-            'fill-extrusion-opacity': 0.6
-          }
-        });
-      }
-    });
-  }, [map]);
 
   const stableProperties = useRef(properties);
   
@@ -178,7 +114,6 @@ const Map = forwardRef<MapRef, MapProps>(({
         mapContainer={mapContainer}
         onMapReady={handleMapReady}
         onMapError={handleMapError}
-        initialMapStyle={currentMapStyle}
       />
       
       {mapLoaded && map && (
@@ -222,17 +157,11 @@ const Map = forwardRef<MapRef, MapProps>(({
       
       <MapControls 
         onResetView={handleResetView} 
-        onToggle3D={handleToggle3D}
-        is3DEnabled={is3DEnabled}
       />
       
       {!mapError && (
         <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-3">
           <MapTokenInput onTokenChange={() => {}} />
-          <MapStyleSelector 
-            currentStyle={currentMapStyle} 
-            onStyleChange={handleStyleChange} 
-          />
         </div>
       )}
     </div>
