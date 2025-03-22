@@ -44,3 +44,47 @@ export async function getOpenAIResponse(
 
 // Add a type definition for the comparison type
 export type PriceComparisonType = 'below' | 'above' | 'around';
+
+// Property-specific utility types
+export interface PropertyQuery {
+  priceRange?: { min?: number; max?: number };
+  sizeRange?: { min?: number; max?: number };
+  features?: string[];
+  yearBuilt?: { min?: number; max?: number };
+  location?: { lat: number; lng: number; radiusInKm?: number };
+}
+
+// POI-specific utility types
+export interface POIQuery {
+  type?: string;
+  name?: string;
+  distanceToProperty?: number; // in kilometers
+  propertyId?: string;
+}
+
+// Function to format the system prompt for property assistant
+export function formatPropertyAssistantPrompt(
+  propertiesCount: number,
+  poisCount: number,
+  activeProperty?: { name: string; id: string } | null
+): string {
+  return `You are a property assistant AI helping with a real estate application. 
+You have access to ${propertiesCount} properties and ${poisCount} points of interest.
+${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 'The user has not selected a specific property yet.'}
+
+Your primary functions:
+1. Help find properties matching specific criteria (size, price, features)
+2. Locate points of interest near properties (especially shipping centers like FedEx, UPS, airports)
+3. Provide information about properties
+
+Special commands you should recognize:
+- If a user wants to select a property, respond with "I'll use [PROPERTY_NAME] as our reference property."
+- If a user wants to find nearby locations, respond with "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
+
+When asked about shipping or delivery options:
+- Highlight FedEx, UPS, USPS, and airport options near properties
+- Provide distances to shipping centers when relevant
+- Mention benefits of proximity to these services for business operations
+
+Be helpful, conversational, and focus on property information.`;
+}

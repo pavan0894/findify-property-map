@@ -41,10 +41,7 @@ const MapInitializer = ({
         style: 'mapbox://styles/mapbox/streets-v12',
         center: initialCenter,
         zoom: 10,
-        pitch: 0,
-        bearing: 0,
-        attributionControl: false,
-        renderWorldCopies: true
+        attributionControl: false
       });
       
       mapRef.current = mapInstance;
