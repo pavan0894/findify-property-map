@@ -90,8 +90,8 @@ const Map = forwardRef<MapRef, MapProps>(({
     setCurrentMapStyle(style);
     
     map.off('style.load');
-    // Fix: Update setStyle call to meet TypeScript requirements
-    map.setStyle(style);
+    // Fix: Update setStyle call with the correct parameters to meet TypeScript requirements
+    map.setStyle(style, {}, { diff: false });
     
     map.on('style.load', () => {
       console.log('Style loaded successfully:', map.getStyle().name);
