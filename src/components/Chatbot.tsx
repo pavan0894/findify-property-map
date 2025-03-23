@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -13,7 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Property, POI } from '@/utils/data';
-import { calculateDistance, kmToMiles, findPOIsNearProperty } from '@/utils/mapUtils';
+import { 
+  calculateDistance, 
+  kmToMiles, 
+  findPOIsNearProperty, 
+  findPropertiesNearPOIType
+} from '@/utils/mapUtils';
 import { toast } from '@/hooks/use-toast';
 import ApiKeyInput from './ApiKeyInput';
 import { 
@@ -69,6 +73,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const [isThinking, setIsThinking] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
   const [openAIKey, setOpenAIKey] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [useAI, setUseAI] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -92,6 +97,12 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       console.log('Found saved API key, enabling AI mode');
       setOpenAIKey(savedApiKey);
       setUseAI(true);
+    }
+    
+    const savedModel = localStorage.getItem('openai-model');
+    if (savedModel) {
+      console.log('Found saved model:', savedModel);
+      setSelectedModel(savedModel);
     }
   }, []);
 
@@ -122,6 +133,17 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setIsThinking(true);
     
     try {
+      // Check for direct FedEx query to ensure it works consistently
+      const lowerQuery = inputValue.toLowerCase();
+      if (lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) {
+        if (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
+            lowerQuery.includes('close to') || lowerQuery.includes('by') || 
+            lowerQuery.includes('around')) {
+          console.log('Detected FedEx property search query');
+          handleFedExPropertySearch();
+        }
+      }
+      
       if (useAI && openAIKey) {
         console.log('Using AI mode with OpenAI API');
         const systemPrompt = formatPropertyAssistantPrompt(
@@ -140,8 +162,8 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
         ];
 
         try {
-          console.log('Calling OpenAI with chat history:', chatHistory.length, 'messages');
-          const aiResponse = await getOpenAIResponse(chatHistory, openAIKey);
+          console.log(`Calling OpenAI API with model: ${selectedModel}`);
+          const aiResponse = await getOpenAIResponse(chatHistory, openAIKey, selectedModel);
           
           // Process the AI response
           console.log('Received AI response:', aiResponse.substring(0, 100) + '...');
@@ -212,6 +234,64 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     }
   };
 
+  const handleFedExPropertySearch = () => {
+    console.log('Executing FedEx property search');
+    
+    // Find FedEx locations
+    const fedexLocations = pois.filter(poi => 
+      poi.name.toLowerCase().includes('fedex') ||
+      (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
+    );
+    
+    console.log(`Found ${fedexLocations.length} FedEx locations`);
+    
+    if (fedexLocations.length === 0) {
+      addMessage("I couldn't find any FedEx locations in the database.", 'bot');
+      return;
+    }
+    
+    // Find properties near FedEx locations
+    const maxDistanceKm = 8; // 5 miles
+    const propertiesNearFedEx = findPropertiesNearPOIType(
+      properties,
+      pois,
+      'fedex',
+      maxDistanceKm
+    );
+    
+    console.log(`Found ${propertiesNearFedEx.length} properties near FedEx locations`);
+    
+    // Show FedEx locations on map
+    onShowPOIs(fedexLocations);
+    
+    if (propertiesNearFedEx.length > 0) {
+      // Select the first property
+      const selectedProperty = propertiesNearFedEx[0];
+      setActiveProperty(selectedProperty);
+      onSelectProperty(selectedProperty);
+      
+      // Format property list
+      const propertyLinks = propertiesNearFedEx.slice(0, 5).map(p => 
+        `<a href="#" class="text-primary hover:underline" data-property-id="${p.id}">${p.name}</a>`
+      ).join(', ');
+      
+      toast({
+        title: `Found ${propertiesNearFedEx.length} properties`,
+        description: `Properties near FedEx locations`,
+      });
+      
+      addMessage(
+        `I found ${propertiesNearFedEx.length} properties near FedEx locations. I've marked FedEx locations on the map. Here are some nearby properties: ${propertyLinks}.`,
+        'bot'
+      );
+    } else {
+      addMessage(
+        "I found FedEx locations but couldn't find any properties within 5 miles of them. I've marked the FedEx locations on the map.",
+        'bot'
+      );
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSendMessage();
@@ -245,6 +325,11 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     }
   };
 
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    console.log('Model updated:', model);
+  };
+
   const filterPropertiesByPrice = (targetPrice: number, comparisonType: PriceComparisonType, properties: Property[]): Property[] => {
     if (comparisonType === 'below') {
       return properties.filter(p => p.price < targetPrice);
@@ -261,6 +346,21 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const generateAIResponse = (query: string): string => {
     const lowerQuery = query.toLowerCase();
     console.log("Processing local query:", lowerQuery);
+    
+    // Check for FedEx specific queries
+    if ((lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) && 
+        (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
+         lowerQuery.includes('close to') || lowerQuery.includes('by') || 
+         lowerQuery.includes('around'))) {
+      
+      console.log('Processing FedEx property search in local response generator');
+      // Manually trigger the FedEx search instead of responding with text
+      setTimeout(() => {
+        handleFedExPropertySearch();
+      }, 100);
+      
+      return "Looking for properties near FedEx locations...";
+    }
     
     if (/^(hi|hello|hey|greetings|howdy)/.test(lowerQuery)) {
       const greetings = [
@@ -605,350 +705,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     if (lowerQuery === 'fedex' || lowerQuery === 'fed ex') {
       return pois.filter(poi => 
         poi.name.toLowerCase().includes('fedex') || 
-        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
-      );
-    }
-    
-    if (lowerQuery === 'usps' || lowerQuery === 'post office' || lowerQuery === 'postal service') {
-      return pois.filter(poi => 
-        poi.name.toLowerCase().includes('usps') || 
-        poi.name.toLowerCase().includes('post office') ||
-        poi.type.toLowerCase().includes('post office')
-      );
-    }
-    
-    if (lowerQuery === 'ups') {
-      return pois.filter(poi => 
-        poi.name.toLowerCase().includes('ups') && !poi.name.toLowerCase().includes('supplies') ||
-        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('ups'))
-      );
-    }
-    
-    return pois.filter(poi => 
-      poi.type.toLowerCase().includes(lowerQuery) ||
-      poi.name.toLowerCase().includes(lowerQuery)
-    );
-  };
-
-  const filterPropertiesBySize = (targetSize: number, properties: Property[], tolerance = 0.10): Property[] => {
-    const minSize = targetSize * (1 - tolerance);
-    const maxSize = targetSize * (1 + tolerance);
-    
-    return properties.filter(property => 
-      property.size >= minSize && property.size <= maxSize
-    );
-  };
-
-  const formatSize = (size: number): string => {
-    return `${size.toLocaleString()} sq ft`;
-  };
-
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'A') {
-      e.preventDefault();
-      
-      if (target.hasAttribute('data-property-id')) {
-        const propertyId = target.getAttribute('data-property-id');
-        const property = properties.find(p => p.id === propertyId);
-        
-        if (property) {
-          setActiveProperty(property);
-          onSelectProperty(property);
-          console.log('Property selected from message click:', property.name);
-          toast({
-            title: "Property Selected",
-            description: `Now viewing ${property.name}`,
-          });
-        }
-      } else if (target.hasAttribute('data-poi-id')) {
-        const poiId = target.getAttribute('data-poi-id');
-        const poi = pois.find(p => p.id === poiId);
-        
-        if (poi) {
-          onSelectPOI(poi);
-          console.log('POI selected from message click:', poi.name);
-          toast({
-            title: "Location Selected",
-            description: `Now viewing ${poi.name}`,
-          });
-        }
-      }
-    }
-  };
-
-  if (embedded) {
-    return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="font-medium">
-              Property Assistant
-              {activeProperty && (
-                <span className="ml-1 text-xs text-primary font-normal">
-                  ({activeProperty.name})
-                </span>
-              )}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleApiKeyInput}
-              className={useAI ? "text-primary" : "text-muted-foreground"}
-              title={useAI ? "AI Mode Active" : "Enable AI Mode"}
-            >
-              <Sparkles className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggleExpand}
-              title={isExpanded ? "Collapse" : "Expand"}
-            >
-              {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-        
-        {showApiKeyInput && (
-          <div className="p-2 border-b">
-            <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
-          </div>
-        )}
-        
-        <div 
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-          onClick={handleMessageClick}
-        >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`
-                  max-w-[80%] rounded-lg p-3 
-                  ${message.sender === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'}
-                `}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {message.sender === 'user' ? (
-                    <User className="h-4 w-4" />
-                  ) : (
-                    <Bot className="h-4 w-4" />
-                  )}
-                  <span className="text-xs font-medium">
-                    {message.sender === 'user' ? 'You' : 'Assistant'}
-                  </span>
-                  <span className="text-xs opacity-70">
-                    {message.timestamp.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
-                </div>
-                <div 
-                  className="text-sm whitespace-pre-line"
-                  dangerouslySetInnerHTML={{ __html: message.content }}
-                />
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        
-        <div className="p-4 border-t">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ask about properties or nearby locations..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isThinking}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isThinking}
-              size="icon"
-            >
-              <SendHorizonal className="h-4 w-4" />
-            </Button>
-          </div>
-          {isThinking && (
-            <p className="text-xs text-muted-foreground animate-pulse mt-2">
-              Thinking...
-            </p>
-          )}
-          {!isThinking && useAI && (
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-primary" />
-              AI mode is active
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {isOpen ? (
-        <div
-          className={`fixed z-50 bottom-5 right-5 w-96 h-[32rem] bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden transition-all duration-300 ${
-            isExpanded ? "fixed inset-5 w-auto h-auto" : ""
-          }`}
-        >
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="font-medium">
-                Property Assistant
-                {activeProperty && (
-                  <span className="ml-1 text-xs text-primary font-normal">
-                    ({activeProperty.name})
-                  </span>
-                )}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleApiKeyInput}
-                className={useAI ? "text-primary" : "text-muted-foreground"}
-                title={useAI ? "AI Mode Active" : "Enable AI Mode"}
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggleExpand}
-                title={isExpanded ? "Collapse" : "Expand"}
-              >
-                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseChat}
-                title="Close"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {showApiKeyInput && (
-            <div className="p-2 border-b">
-              <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
-            </div>
-          )}
-          
-          <div 
-            className="flex-1 overflow-y-auto p-4 space-y-4"
-            onClick={handleMessageClick}
-          >
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`
-                    max-w-[80%] rounded-lg p-3 
-                    ${message.sender === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'}
-                  `}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {message.sender === 'user' ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Bot className="h-4 w-4" />
-                    )}
-                    <span className="text-xs font-medium">
-                      {message.sender === 'user' ? 'You' : 'Assistant'}
-                    </span>
-                    <span className="text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                  <div 
-                    className="text-sm whitespace-pre-line"
-                    dangerouslySetInnerHTML={{ __html: message.content }}
-                  />
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-          
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ask about properties or nearby locations..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={isThinking}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isThinking}
-                size="icon"
-              >
-                <SendHorizonal className="h-4 w-4" />
-              </Button>
-            </div>
-            {isThinking && (
-              <p className="text-xs text-muted-foreground animate-pulse mt-2">
-                Thinking...
-              </p>
-            )}
-            {!isThinking && useAI && (
-              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-primary" />
-                AI mode is active
-              </p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <Button
-          className="fixed z-50 bottom-5 right-5 gap-2 shadow-lg"
-          onClick={handleToggleChat}
-        >
-          <MessageSquare className="h-4 w-4" />
-          Property Assistant
-        </Button>
-      )}
-    </>
-  );
-};
-
-export default Chatbot;
+        (poi.type.

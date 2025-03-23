@@ -36,7 +36,9 @@ export function findPropertiesNearPOI(
   poi: POI,
   maxDistanceKm: number
 ): Property[] {
-  return properties.filter(property => {
+  console.log(`Finding properties near POI: ${poi.name} within ${maxDistanceKm}km`);
+  
+  const nearbyProperties = properties.filter(property => {
     const distance = calculateDistance(
       property.latitude,
       property.longitude,
@@ -45,6 +47,47 @@ export function findPropertiesNearPOI(
     );
     return distance <= maxDistanceKm;
   });
+  
+  console.log(`Found ${nearbyProperties.length} properties near ${poi.name}`);
+  return nearbyProperties;
+}
+
+// Find properties near any POI of a specific type
+export function findPropertiesNearPOIType(
+  properties: Property[],
+  pois: POI[],
+  poiType: string,
+  maxDistanceKm: number
+): Property[] {
+  console.log(`Finding properties near POI type: ${poiType} within ${maxDistanceKm}km`);
+  
+  // First filter POIs by type
+  const filteredPOIs = pois.filter(poi => 
+    poi.type.toLowerCase().includes(poiType.toLowerCase()) || 
+    poi.name.toLowerCase().includes(poiType.toLowerCase())
+  );
+  
+  console.log(`Found ${filteredPOIs.length} POIs matching type: ${poiType}`);
+  
+  if (filteredPOIs.length === 0) {
+    return [];
+  }
+  
+  // Find properties near any of the filtered POIs
+  const nearbyProperties = properties.filter(property => {
+    return filteredPOIs.some(poi => {
+      const distance = calculateDistance(
+        property.latitude,
+        property.longitude,
+        poi.latitude,
+        poi.longitude
+      );
+      return distance <= maxDistanceKm;
+    });
+  });
+  
+  console.log(`Found ${nearbyProperties.length} properties near ${poiType} locations`);
+  return nearbyProperties;
 }
 
 // Find POIs within a certain distance of a property
@@ -58,7 +101,9 @@ export function findPOIsNearProperty(
     maxDistanceKm = 8; // Default to 5 miles (8km) if no valid distance
   }
   
-  return pois.filter(poi => {
+  console.log(`Finding POIs near property: ${property.name} within ${maxDistanceKm}km`);
+  
+  const nearbyPOIs = pois.filter(poi => {
     const distance = calculateDistance(
       property.latitude,
       property.longitude,
@@ -67,6 +112,9 @@ export function findPOIsNearProperty(
     );
     return distance <= maxDistanceKm;
   });
+  
+  console.log(`Found ${nearbyPOIs.length} POIs near ${property.name}`);
+  return nearbyPOIs;
 }
 
 // Function to calculate the center point of an array of coordinates
@@ -128,13 +176,18 @@ export function fitMapToProperties(map: mapboxgl.Map, properties: Property[]) {
 export function filterPOIsByType(pois: POI[], types: string[]): POI[] {
   if (!types.length) return pois;
   
+  console.log(`Filtering POIs by types: ${types.join(', ')}`);
+  
   // Improved case-insensitive filtering
-  return pois.filter(poi => 
+  const filteredPOIs = pois.filter(poi => 
     types.some(type => 
       poi.type.toLowerCase() === type.toLowerCase() ||
       poi.name.toLowerCase().includes(type.toLowerCase())
     )
   );
+  
+  console.log(`Filtered ${pois.length} POIs down to ${filteredPOIs.length} POIs`);
+  return filteredPOIs;
 }
 
 // Filter properties by distance to POI types
@@ -147,11 +200,13 @@ export function filterPropertiesByPOIDistance(
   // If no POI types selected, return all properties
   if (!poiTypes.length) return properties;
   
+  console.log(`Filtering properties by POI types: ${poiTypes.join(', ')} within ${maxDistanceKm}km`);
+  
   // Filter POIs by selected types
   const filteredPOIs = filterPOIsByType(pois, poiTypes);
   
   // Find properties that are within maxDistance of at least one of the filtered POIs
-  return properties.filter(property => {
+  const filteredProperties = properties.filter(property => {
     return filteredPOIs.some(poi => {
       const distance = calculateDistance(
         property.latitude,
@@ -162,6 +217,9 @@ export function filterPropertiesByPOIDistance(
       return distance <= maxDistanceKm;
     });
   });
+  
+  console.log(`Filtered ${properties.length} properties down to ${filteredProperties.length} properties`);
+  return filteredProperties;
 }
 
 // Add a delay function for animations
