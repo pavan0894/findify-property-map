@@ -10,6 +10,7 @@ import PropertyTable from '@/components/property/PropertyTable';
 import SearchFilters from '@/components/SearchFilters';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import Chatbot from '@/components/Chatbot';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -34,9 +35,27 @@ const Index = () => {
   
   // Show POIs on map (called from Chatbot)
   const handleShowPOIs = (pois: POI[]) => {
+    console.log(`Showing ${pois.length} POIs from chatbot`);
     setActivePOIs(pois);
+    
     if (mapRef.current) {
       mapRef.current.showPOIs(pois);
+      toast({
+        title: `Showing ${pois.length} locations`,
+        description: "Map updated with requested locations",
+      });
+    }
+  };
+  
+  // Handle showing properties near FedEx when requested from chatbot
+  const handleShowPropertiesNearFedEx = () => {
+    console.log("Showing properties near FedEx from chatbot");
+    if (mapRef.current) {
+      mapRef.current.showPropertiesNearFedEx();
+      toast({
+        title: "Finding Properties Near FedEx",
+        description: "Showing properties with nearby FedEx locations",
+      });
     }
   };
   
@@ -123,6 +142,7 @@ const Index = () => {
                   onSelectProperty={handleSelectProperty}
                   onSelectPOI={handleSelectPOI}
                   onShowPOIs={handleShowPOIs}
+                  onShowPropertiesNearFedEx={handleShowPropertiesNearFedEx}
                   embedded={true}
                 />
               </div>

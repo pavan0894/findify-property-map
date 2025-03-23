@@ -42,8 +42,8 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
           pinEl.className = 'flex items-center justify-center';
           pinEl.innerHTML = `
             <div class="relative">
-              <div class="h-4 w-4 rounded-full shadow-md ${isFiltered ? 'bg-[#003f2d]' : 'bg-gray-500 opacity-60'}"></div>
-              <div class="h-1.5 w-1.5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+              <div class="h-5 w-5 rounded-full shadow-md ${isFiltered ? 'bg-[#003f2d]' : 'bg-gray-500 opacity-60'}"></div>
+              <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
             </div>
           `;
         } else {

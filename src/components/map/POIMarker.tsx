@@ -56,10 +56,10 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
         // FedEx locations get special styling - larger and more prominent
         if (isFedEx) {
           pinEl.innerHTML = `
-            <div class="h-7 w-7 rounded-full shadow-md ${isSelected ? 'scale-125 ring-2 ring-white' : ''}" 
+            <div class="h-8 w-8 rounded-full shadow-lg ${isSelected ? 'scale-125 ring-2 ring-white animate-pulse' : ''}" 
                  style="background-color: ${pinColor}"></div>
             <div class="h-3 w-3 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
-            <div class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 whitespace-nowrap px-1 py-0.5 bg-white text-xs font-bold rounded shadow">FedEx</div>
+            <div class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 whitespace-nowrap px-2 py-0.5 bg-white text-xs font-bold rounded shadow text-purple-700">FedEx</div>
           `;
         } else {
           pinEl.innerHTML = `
