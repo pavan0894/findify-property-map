@@ -133,7 +133,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setIsThinking(true);
     
     try {
-      // Check for direct FedEx query to ensure it works consistently
       const lowerQuery = inputValue.toLowerCase();
       if (lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) {
         if (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
@@ -165,7 +164,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           console.log(`Calling OpenAI API with model: ${selectedModel}`);
           const aiResponse = await getOpenAIResponse(chatHistory, openAIKey, selectedModel);
           
-          // Process the AI response
           console.log('Received AI response:', aiResponse.substring(0, 100) + '...');
           
           const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
@@ -219,12 +217,11 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           addMessage(fallbackResponse, 'bot');
         }
       } else {
-        // Use the local implementation if AI is disabled or no API key
         console.log('Using local response generation (no AI)');
         setTimeout(() => {
           const response = generateAIResponse(inputValue);
           addMessage(response, 'bot');
-        }, Math.random() * 800 + 300); // Simulate thinking time
+        }, Math.random() * 800 + 300);
       }
     } catch (error) {
       console.error('Error in message handling:', error);
@@ -237,7 +234,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const handleFedExPropertySearch = () => {
     console.log('Executing FedEx property search');
     
-    // Find FedEx locations
     const fedexLocations = pois.filter(poi => 
       poi.name.toLowerCase().includes('fedex') ||
       (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
@@ -250,7 +246,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       return;
     }
     
-    // Find properties near FedEx locations
     const maxDistanceKm = 8; // 5 miles
     const propertiesNearFedEx = findPropertiesNearPOIType(
       properties,
@@ -261,16 +256,13 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     
     console.log(`Found ${propertiesNearFedEx.length} properties near FedEx locations`);
     
-    // Show FedEx locations on map
     onShowPOIs(fedexLocations);
     
     if (propertiesNearFedEx.length > 0) {
-      // Select the first property
       const selectedProperty = propertiesNearFedEx[0];
       setActiveProperty(selectedProperty);
       onSelectProperty(selectedProperty);
       
-      // Format property list
       const propertyLinks = propertiesNearFedEx.slice(0, 5).map(p => 
         `<a href="#" class="text-primary hover:underline" data-property-id="${p.id}">${p.name}</a>`
       ).join(', ');
@@ -347,14 +339,12 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     const lowerQuery = query.toLowerCase();
     console.log("Processing local query:", lowerQuery);
     
-    // Check for FedEx specific queries
     if ((lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) && 
         (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
          lowerQuery.includes('close to') || lowerQuery.includes('by') || 
          lowerQuery.includes('around'))) {
       
       console.log('Processing FedEx property search in local response generator');
-      // Manually trigger the FedEx search instead of responding with text
       setTimeout(() => {
         handleFedExPropertySearch();
       }, 100);
@@ -705,4 +695,70 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     if (lowerQuery === 'fedex' || lowerQuery === 'fed ex') {
       return pois.filter(poi => 
         poi.name.toLowerCase().includes('fedex') || 
-        (poi.type.
+        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
+      );
+    }
+    
+    if (lowerQuery === 'usps' || lowerQuery === 'post office' || lowerQuery === 'postal service') {
+      return pois.filter(poi => 
+        poi.name.toLowerCase().includes('usps') || 
+        poi.name.toLowerCase().includes('post office') ||
+        poi.type.toLowerCase().includes('post office')
+      );
+    }
+    
+    if (lowerQuery === 'ups') {
+      return pois.filter(poi => 
+        (poi.name.toLowerCase().includes('ups') && !poi.name.toLowerCase().includes('supplies')) ||
+        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('ups'))
+      );
+    }
+    
+    return pois.filter(poi => 
+      poi.type.toLowerCase().includes(lowerQuery) ||
+      poi.name.toLowerCase().includes(lowerQuery)
+    );
+  };
+
+  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'A') {
+      e.preventDefault();
+      
+      if (target.hasAttribute('data-property-id')) {
+        const propertyId = target.getAttribute('data-property-id');
+        const property = properties.find(p => p.id === propertyId);
+        
+        if (property) {
+          setActiveProperty(property);
+          onSelectProperty(property);
+          console.log('Property selected from message click:', property.name);
+          toast({
+            title: "Property Selected",
+            description: `Now viewing ${property.name}`,
+          });
+        }
+      } else if (target.hasAttribute('data-poi-id')) {
+        const poiId = target.getAttribute('data-poi-id');
+        const poi = pois.find(p => p.id === poiId);
+        
+        if (poi) {
+          onSelectPOI(poi);
+          console.log('POI selected from message click:', poi.name);
+          toast({
+            title: "Location Selected",
+            description: `Now viewing ${poi.name}`,
+          });
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="chatbot">
+      {/* Render methods and JSX */}
+    </div>
+  );
+};
+
+export default Chatbot;
