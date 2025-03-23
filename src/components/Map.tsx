@@ -3,7 +3,7 @@ import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperat
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Property, POI } from '@/utils/data';
-import { MAPBOX_TOKEN, fitMapToProperties, findPOIsNearProperty } from '@/utils/mapUtils';
+import { MAPBOX_TOKEN, fitMapToProperties, findPOIsNearProperty, findPropertiesWithNearestFedEx } from '@/utils/mapUtils';
 import { toast } from '@/hooks/use-toast';
 import MapTokenInput from '@/components/MapTokenInput';
 import MapInitializer from '@/components/map/MapInitializer';
@@ -25,6 +25,7 @@ export interface MapProps {
 export interface MapRef {
   clearPOIs: () => void;
   showPOIs: (pois: POI[]) => void;
+  showPropertiesNearFedEx: () => void;
 }
 
 const Map = forwardRef<MapRef, MapProps>(({
@@ -43,6 +44,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
   const [renderTrigger, setRenderTrigger] = useState(0);
+  const [propertiesHighlight, setPropertiesHighlight] = useState<Property[]>([]);
   
   // Track when map loads
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
@@ -64,8 +66,9 @@ const Map = forwardRef<MapRef, MapProps>(({
 
   const handleResetView = useCallback(() => {
     if (!map) return;
-    fitMapToProperties(map, properties);
-  }, [map, properties]);
+    const propsToFit = propertiesHighlight.length > 0 ? propertiesHighlight : properties;
+    fitMapToProperties(map, propsToFit);
+  }, [map, properties, propertiesHighlight]);
 
   // Track property changes
   useEffect(() => {
@@ -121,6 +124,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   // Expose methods via ref
   const clearPOIs = useCallback(() => {
     setActivePOIs([]);
+    setPropertiesHighlight([]);
   }, []);
 
   const showPOIs = useCallback((pois: POI[]) => {
@@ -161,10 +165,78 @@ const Map = forwardRef<MapRef, MapProps>(({
     }
   }, [map, mapLoaded]);
 
+  // New method to show properties near FedEx locations
+  const showPropertiesNearFedEx = useCallback(() => {
+    if (!map || !mapLoaded || !pointsOfInterest || !properties) {
+      console.log('Map or data not ready for FedEx search');
+      return;
+    }
+
+    console.log('Finding properties near FedEx locations');
+    
+    // Use new utility function to find properties with nearest FedEx locations
+    const { properties: nearFedExProps, fedexLocations } = findPropertiesWithNearestFedEx(
+      properties,
+      pointsOfInterest,
+      maxDistance * 1.60934 // Convert miles to km
+    );
+    
+    if (fedexLocations.length === 0) {
+      toast({
+        title: "No FedEx Locations Found",
+        description: "We couldn't find any FedEx locations in the database.",
+      });
+      return;
+    }
+    
+    console.log(`Found ${nearFedExProps.length} properties near ${fedexLocations.length} FedEx locations`);
+    
+    // Show FedEx locations on map
+    setActivePOIs(fedexLocations);
+    
+    // Highlight properties near FedEx
+    setPropertiesHighlight(nearFedExProps);
+    
+    // Fit map to include both properties and FedEx locations
+    if (map && mapLoaded) {
+      try {
+        const bounds = new mapboxgl.LngLatBounds();
+        
+        // Add each property to the bounds
+        nearFedExProps.forEach(prop => {
+          bounds.extend([prop.longitude, prop.latitude]);
+        });
+        
+        // Add each FedEx location to the bounds
+        fedexLocations.forEach(fedex => {
+          bounds.extend([fedex.longitude, fedex.latitude]);
+        });
+        
+        // Fit the map to the bounds with some padding
+        map.fitBounds(bounds, {
+          padding: 100,
+          maxZoom: 11,
+          duration: 1000
+        });
+        
+        // Trigger a re-render
+        setRenderTrigger(prev => prev + 1);
+        
+        toast({
+          title: `Properties Near FedEx`,
+          description: `Found ${nearFedExProps.length} properties near ${fedexLocations.length} FedEx locations`,
+        });
+      } catch (error) {
+        console.error('Error fitting map to FedEx data:', error);
+      }
+    }
+  }, [map, mapLoaded, pointsOfInterest, properties, maxDistance]);
+
   useImperativeHandle(ref, () => ({
     clearPOIs,
-    showPOIs
-  }), [clearPOIs, showPOIs]);
+    showPOIs,
+    showPropertiesNearFedEx
+  }), [clearPOIs, showPOIs, showPropertiesNearFedEx]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
@@ -185,7 +257,8 @@ const Map = forwardRef<MapRef, MapProps>(({
               key={`marker-${property.id}-${renderTrigger}`}
               property={property}
               map={map}
-              isFiltered={filteredProperties.some(fp => fp.id === property.id)}
+              isFiltered={filteredProperties.some(fp => fp.id === property.id) || 
+                           propertiesHighlight.some(ph => ph.id === property.id)}
               onSelectProperty={onSelectProperty}
             />
           ))}
@@ -226,6 +299,16 @@ const Map = forwardRef<MapRef, MapProps>(({
           <MapTokenInput onTokenChange={() => {}} />
         </div>
       )}
+      
+      {/* Add a "Find Near FedEx" button for quick access */}
+      <div className="absolute bottom-20 right-3 z-10">
+        <button
+          onClick={showPropertiesNearFedEx}
+          className="bg-[#9b59b6] text-white px-3 py-2 rounded-md shadow-md hover:bg-[#8e44ad] transition-colors flex items-center gap-1.5"
+        >
+          <span className="text-sm font-medium">Properties Near FedEx</span>
+        </button>
+      </div>
     </div>
   );
 });

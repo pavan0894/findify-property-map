@@ -90,6 +90,68 @@ export function findPropertiesNearPOIType(
   return nearbyProperties;
 }
 
+// Find properties with nearest FedEx locations
+export function findPropertiesWithNearestFedEx(
+  properties: Property[],
+  pois: POI[],
+  maxDistanceKm: number = 8 // Default to 5 miles (~ 8km)
+): { properties: Property[], fedexLocations: POI[] } {
+  console.log(`Finding properties with nearest FedEx locations within ${maxDistanceKm}km`);
+  
+  // First find all FedEx locations
+  const fedexLocations = pois.filter(poi => 
+    poi.name.toLowerCase().includes('fedex') ||
+    (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
+  );
+  
+  console.log(`Found ${fedexLocations.length} FedEx locations`);
+  
+  if (fedexLocations.length === 0) {
+    return { properties: [], fedexLocations: [] };
+  }
+  
+  // Find properties near any FedEx location
+  const propertiesNearFedEx = findPropertiesNearPOIType(
+    properties,
+    pois,
+    'fedex',
+    maxDistanceKm
+  );
+  
+  // Sort properties by their closest FedEx location
+  const sortedProperties = propertiesNearFedEx.map(property => {
+    // Find the closest FedEx location to this property
+    const distances = fedexLocations.map(fedex => ({
+      fedex,
+      distance: calculateDistance(
+        property.latitude,
+        property.longitude,
+        fedex.latitude,
+        fedex.longitude
+      )
+    }));
+    
+    // Sort by distance and get the closest
+    distances.sort((a, b) => a.distance - b.distance);
+    const closestFedEx = distances[0];
+    
+    return {
+      property,
+      closestFedEx: closestFedEx.fedex,
+      distance: closestFedEx.distance
+    };
+  });
+  
+  // Sort the properties by proximity to the nearest FedEx
+  sortedProperties.sort((a, b) => a.distance - b.distance);
+  
+  // Return only the properties, but sorted by proximity to FedEx
+  return { 
+    properties: sortedProperties.map(item => item.property),
+    fedexLocations 
+  };
+}
+
 // Find POIs within a certain distance of a property
 export function findPOIsNearProperty(
   pois: POI[],

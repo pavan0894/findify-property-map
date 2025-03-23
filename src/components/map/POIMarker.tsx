@@ -47,14 +47,27 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
         
         // Create pin element with Google Maps style
         const pinColor = getPinColor(poi.type);
+        const isFedEx = poi.name.toLowerCase().includes('fedex');
         
-        // Create the pin with smaller dimensions
+        // Create the pin with appropriate dimensions - make FedEx locations larger
         const pinEl = document.createElement('div');
         pinEl.className = 'relative';
-        pinEl.innerHTML = `
-          <div class="h-5 w-5 rounded-full shadow-md ${isSelected ? 'scale-125 ring-2 ring-white' : ''}" style="background-color: ${pinColor}"></div>
-          <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
-        `;
+        
+        // FedEx locations get special styling - larger and more prominent
+        if (isFedEx) {
+          pinEl.innerHTML = `
+            <div class="h-7 w-7 rounded-full shadow-md ${isSelected ? 'scale-125 ring-2 ring-white' : ''}" 
+                 style="background-color: ${pinColor}"></div>
+            <div class="h-3 w-3 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+            <div class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 whitespace-nowrap px-1 py-0.5 bg-white text-xs font-bold rounded shadow">FedEx</div>
+          `;
+        } else {
+          pinEl.innerHTML = `
+            <div class="h-5 w-5 rounded-full shadow-md ${isSelected ? 'scale-125 ring-2 ring-white' : ''}" 
+                 style="background-color: ${pinColor}"></div>
+            <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+          `;
+        }
         
         markerEl.appendChild(pinEl);
         
