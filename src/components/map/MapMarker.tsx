@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Property } from '@/utils/data';
@@ -16,22 +15,23 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
   const [isAdded, setIsAdded] = useState(false);
   
   useEffect(() => {
-    // Skip if map is not available or marker already added
-    if (!map || isAdded) {
+    // Skip if map is not available
+    if (!map) {
+      console.log(`No map available for property ${property.id}`);
       return;
     }
     
-    // Create and add marker
+    // Remove existing marker if any
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+    
     const createMarker = () => {
       try {
-        // Remove existing marker if any
-        if (markerRef.current) {
-          markerRef.current.remove();
-        }
-        
         // Create marker element
         const markerEl = document.createElement('div');
-        markerEl.className = 'property-marker'; // Add a class for easier debugging
+        markerEl.className = 'property-marker';
         
         const icon = document.createElement('div');
         
@@ -47,13 +47,12 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         
         markerEl.appendChild(icon);
         
-        // Create the marker and add to map
+        // Create the marker and add it to the map
         const marker = new mapboxgl.Marker({
           element: markerEl,
           anchor: 'bottom',
         }).setLngLat([property.longitude, property.latitude]);
         
-        // Add to map
         marker.addTo(map);
         
         // Add click event
@@ -63,22 +62,27 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         
         markerRef.current = marker;
         setIsAdded(true);
-        console.log(`Marker added for property ${property.id} at [${property.longitude}, ${property.latitude}]`);
+        console.log(`✅ Marker added for property ${property.id} at [${property.longitude}, ${property.latitude}]`);
       } catch (error) {
         console.error('Error creating marker for property', property.id, error);
       }
     };
     
-    // Check if map is loaded before adding the marker
+    // Create marker immediately if map is already loaded
     if (map.loaded()) {
       console.log(`Map is loaded, adding marker for property ${property.id}`);
       createMarker();
     } else {
-      console.log(`Map not yet loaded, waiting for load event for property ${property.id}`);
-      map.once('load', () => {
+      // Otherwise wait for map to load
+      console.log(`Map not loaded yet, waiting for load event for property ${property.id}`);
+      
+      const onMapLoad = () => {
         console.log(`Map load event fired, now adding marker for property ${property.id}`);
         createMarker();
-      });
+        map.off('load', onMapLoad);
+      };
+      
+      map.on('load', onMapLoad);
     }
     
     // Cleanup
@@ -90,7 +94,7 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         setIsAdded(false);
       }
     };
-  }, [map, property, isFiltered, onSelectProperty, isAdded]);
+  }, [map, property, isFiltered, onSelectProperty]);
 
   // Update marker if isFiltered changes
   useEffect(() => {

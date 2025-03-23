@@ -41,8 +41,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
-  const [markersAdded, setMarkersAdded] = useState(false);
-
+  
   // Track when map loads
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
@@ -65,9 +64,15 @@ const Map = forwardRef<MapRef, MapProps>(({
   useEffect(() => {
     if (mapLoaded && map) {
       console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
-      setMarkersAdded(false); // Reset markers flag when properties change
     }
   }, [mapLoaded, map, properties.length, filteredProperties.length]);
+
+  // Log marker creation status
+  useEffect(() => {
+    if (mapLoaded && map && properties.length > 0) {
+      console.log(`Ready to create ${properties.length} markers for properties`);
+    }
+  }, [mapLoaded, map, properties]);
 
   // Handle POIs for selected property
   useEffect(() => {
@@ -90,14 +95,6 @@ const Map = forwardRef<MapRef, MapProps>(({
     }
   }, [selectedPOI, activePOIs]);
 
-  // Add markers when map is loaded
-  useEffect(() => {
-    if (mapLoaded && map && !markersAdded && properties.length > 0) {
-      console.log('Adding markers to map now');
-      setMarkersAdded(true);
-    }
-  }, [mapLoaded, map, properties, markersAdded]);
-
   // Expose methods via ref
   const clearPOIs = useCallback(() => {
     setActivePOIs([]);
@@ -112,13 +109,16 @@ const Map = forwardRef<MapRef, MapProps>(({
     showPOIs
   }), [clearPOIs, showPOIs]);
 
+  // Properties for markers rendering (ensure they are all included)
+  const allProperties = properties || [];
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
       <div ref={mapContainer} className="absolute inset-0 bg-gray-100" />
       
       <MapInitializer
         mapToken={mapToken}
-        properties={properties}
+        properties={allProperties}
         mapContainer={mapContainer}
         onMapReady={handleMapReady}
         onMapError={handleMapError}
@@ -126,10 +126,10 @@ const Map = forwardRef<MapRef, MapProps>(({
       
       {mapLoaded && map && (
         <>
-          {console.log('Rendering markers for', properties.length, 'properties')}
-          {properties.map(property => (
+          {console.log('Rendering markers for', allProperties.length, 'properties')}
+          {allProperties.map(property => (
             <MapMarker
-              key={property.id}
+              key={`marker-${property.id}`}
               property={property}
               map={map}
               isFiltered={filteredProperties.some(fp => fp.id === property.id)}
@@ -139,7 +139,7 @@ const Map = forwardRef<MapRef, MapProps>(({
           
           {activePOIs.map(poi => (
             <POIMarker
-              key={poi.id}
+              key={`poi-${poi.id}`}
               poi={poi}
               map={map}
               isSelected={selectedPOI?.id === poi.id}

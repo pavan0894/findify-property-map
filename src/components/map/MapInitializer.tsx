@@ -34,6 +34,7 @@ const MapInitializer = ({
       
       // Calculate initial center
       const initialCenter = calculateCenter(properties);
+      console.log('Initial center calculated:', initialCenter);
       
       // Create new map instance with simple default style
       const mapInstance = new mapboxgl.Map({
@@ -55,16 +56,15 @@ const MapInitializer = ({
         console.log('Map loaded successfully');
         setIsInitialized(true);
         
-        // Delay slightly to ensure map is fully ready
+        // Notify parent component that map is ready immediately
+        onMapReady(mapInstance);
+        
+        // Then fit map to properties
         setTimeout(() => {
-          // Fit map to properties after it's fully loaded
           if (properties.length > 0) {
             console.log(`Fitting map to ${properties.length} properties`);
             fitMapToProperties(mapInstance, properties);
           }
-          
-          // Notify parent component that map is ready
-          onMapReady(mapInstance);
         }, 100);
       });
       
