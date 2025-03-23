@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   MessageSquare, 
@@ -706,3 +707,248 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
             <Button
               variant="ghost"
               size="icon"
+              onClick={toggleApiKeyInput}
+              className={useAI ? "text-primary" : "text-muted-foreground"}
+              title={useAI ? "AI Mode Active" : "Enable AI Mode"}
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleExpand}
+              title={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        
+        {showApiKeyInput && (
+          <div className="p-2 border-b">
+            <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
+          </div>
+        )}
+        
+        <div 
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          onClick={handleMessageClick}
+        >
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`
+                  max-w-[80%] rounded-lg p-3 
+                  ${message.sender === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted'}
+                `}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  {message.sender === 'user' ? (
+                    <User className="h-4 w-4" />
+                  ) : (
+                    <Bot className="h-4 w-4" />
+                  )}
+                  <span className="text-xs font-medium">
+                    {message.sender === 'user' ? 'You' : 'Assistant'}
+                  </span>
+                  <span className="text-xs opacity-70">
+                    {message.timestamp.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+                <div 
+                  className="text-sm whitespace-pre-line"
+                  dangerouslySetInnerHTML={{ __html: message.content }}
+                />
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="p-4 border-t">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ask about properties or nearby locations..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isThinking}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || isThinking}
+              size="icon"
+            >
+              <SendHorizonal className="h-4 w-4" />
+            </Button>
+          </div>
+          {isThinking && (
+            <p className="text-xs text-muted-foreground animate-pulse mt-2">
+              Thinking...
+            </p>
+          )}
+          {!isThinking && useAI && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-primary" />
+              AI mode is active
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isOpen ? (
+        <div
+          className={`fixed z-50 bottom-5 right-5 w-96 h-[32rem] bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden transition-all duration-300 ${
+            isExpanded ? "fixed inset-5 w-auto h-auto" : ""
+          }`}
+        >
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="font-medium">
+                Property Assistant
+                {activeProperty && (
+                  <span className="ml-1 text-xs text-primary font-normal">
+                    ({activeProperty.name})
+                  </span>
+                )}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleApiKeyInput}
+                className={useAI ? "text-primary" : "text-muted-foreground"}
+                title={useAI ? "AI Mode Active" : "Enable AI Mode"}
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleToggleExpand}
+                title={isExpanded ? "Collapse" : "Expand"}
+              >
+                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCloseChat}
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {showApiKeyInput && (
+            <div className="p-2 border-b">
+              <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
+            </div>
+          )}
+          
+          <div 
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+            onClick={handleMessageClick}
+          >
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`
+                    max-w-[80%] rounded-lg p-3 
+                    ${message.sender === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'}
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    {message.sender === 'user' ? (
+                      <User className="h-4 w-4" />
+                    ) : (
+                      <Bot className="h-4 w-4" />
+                    )}
+                    <span className="text-xs font-medium">
+                      {message.sender === 'user' ? 'You' : 'Assistant'}
+                    </span>
+                    <span className="text-xs opacity-70">
+                      {message.timestamp.toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                  <div 
+                    className="text-sm whitespace-pre-line"
+                    dangerouslySetInnerHTML={{ __html: message.content }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <div className="p-4 border-t">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ask about properties or nearby locations..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isThinking}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isThinking}
+                size="icon"
+              >
+                <SendHorizonal className="h-4 w-4" />
+              </Button>
+            </div>
+            {isThinking && (
+              <p className="text-xs text-muted-foreground animate-pulse mt-2">
+                Thinking...
+              </p>
+            )}
+            {!isThinking && useAI && (
+              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-primary" />
+                AI mode is active
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <Button
+          className="fixed z-50 bottom-5 right-5 gap-2 shadow-lg"
+          onClick={handleToggleChat}
+        >
+          <MessageSquare className="h-4 w-4" />
+          Property Assistant
+        </Button>
+      )}
+    </>
+  );
+};
+
+export default Chatbot;
