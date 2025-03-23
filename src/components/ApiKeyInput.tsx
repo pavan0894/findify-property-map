@@ -4,17 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Key, Eye, EyeOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const LOCAL_STORAGE_KEY = 'openai-api-key';
+const MODEL_STORAGE_KEY = 'openai-model';
 
 interface ApiKeyInputProps {
   onApiKeyChange: (apiKey: string) => void;
+  onModelChange?: (model: string) => void;
 }
 
-const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
+const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange, onModelChange }) => {
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false);
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
 
   useEffect(() => {
     // Load API key from localStorage on component mount
@@ -25,7 +29,16 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
       onApiKeyChange(savedApiKey);
       console.log('Loaded saved API key from localStorage');
     }
-  }, [onApiKeyChange]);
+    
+    // Load model selection
+    const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
+    if (savedModel) {
+      setSelectedModel(savedModel);
+      if (onModelChange) {
+        onModelChange(savedModel);
+      }
+    }
+  }, [onApiKeyChange, onModelChange]);
 
   const handleSaveApiKey = () => {
     if (apiKey.trim()) {
@@ -50,6 +63,18 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
       description: "Your OpenAI API key has been removed.",
     });
     console.log('API key cleared from localStorage');
+  };
+
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value);
+    localStorage.setItem(MODEL_STORAGE_KEY, value);
+    if (onModelChange) {
+      onModelChange(value);
+    }
+    toast({
+      title: "Model Updated",
+      description: `Using ${value === 'gpt-4o' ? 'GPT-4o (more powerful)' : 'GPT-4o-mini (faster)'}`,
+    });
   };
 
   return (
@@ -97,10 +122,27 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
             </Button>
           )}
         </div>
+        
         {isApiKeySaved && (
-          <p className="text-xs text-muted-foreground">
-            Your API key is saved in your browser's local storage.
-          </p>
+          <>
+            <div className="mt-2">
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Model Selection
+              </label>
+              <Select value={selectedModel} onValueChange={handleModelChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o-mini">GPT-4o-mini (Faster, Cheaper)</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o (More Powerful)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Your API key is saved in your browser's local storage.
+            </p>
+          </>
         )}
       </div>
     </div>

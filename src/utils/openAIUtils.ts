@@ -32,7 +32,15 @@ export async function getOpenAIResponse(
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      
+      // Handle specific error types
+      if (errorData.error?.type === 'insufficient_quota') {
+        throw new Error('Your OpenAI API key has exceeded its quota. Please check your billing details or try again later.');
+      } else if (errorData.error?.type === 'invalid_request_error') {
+        throw new Error(`Invalid request: ${errorData.error?.message || 'Unknown error'}`);
+      } else {
+        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      }
     }
 
     const data = await response.json();
@@ -40,7 +48,7 @@ export async function getOpenAIResponse(
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
-    throw new Error('Failed to get response from OpenAI');
+    throw new Error(error instanceof Error ? error.message : 'Failed to get response from OpenAI');
   }
 }
 
