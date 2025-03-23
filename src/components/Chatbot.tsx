@@ -15,7 +15,12 @@ import { Property, POI } from '@/utils/data';
 import { calculateDistance, kmToMiles, findPOIsNearProperty } from '@/utils/mapUtils';
 import { toast } from '@/hooks/use-toast';
 import ApiKeyInput from './ApiKeyInput';
-import { getOpenAIResponse, ChatMessage, PriceComparisonType } from '@/utils/openAIUtils';
+import { 
+  getOpenAIResponse, 
+  ChatMessage, 
+  PriceComparisonType, 
+  formatPropertyAssistantPrompt 
+} from '@/utils/openAIUtils';
 
 interface ChatbotProps {
   properties: Property[];
@@ -58,6 +63,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       timestamp: new Date()
     }];
   });
+  
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
@@ -82,6 +88,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   useEffect(() => {
     const savedApiKey = localStorage.getItem('openai-api-key');
     if (savedApiKey) {
+      console.log('Found saved API key, enabling AI mode');
       setOpenAIKey(savedApiKey);
       setUseAI(true);
     }
@@ -108,31 +115,19 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
+    console.log('Sending message:', inputValue);
     addMessage(inputValue, 'user');
     setInputValue('');
     setIsThinking(true);
     
     try {
       if (useAI && openAIKey) {
-        const systemPrompt = `You are a property assistant AI helping with a real estate application. 
-You have access to ${properties.length} properties and ${pois.length} points of interest.
-${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 'The user has not selected a specific property yet.'}
-
-Your primary functions:
-1. Help find properties matching specific criteria (size, price, features)
-2. Locate points of interest near properties (especially shipping centers like FedEx, UPS, airports)
-3. Provide information about properties
-
-Special commands you should recognize:
-- If a user wants to select a property, respond with "I'll use [PROPERTY_NAME] as our reference property."
-- If a user wants to find nearby locations, respond with "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
-
-When asked about shipping or delivery options:
-- Highlight FedEx, UPS, USPS, and airport options near properties
-- Provide distances to shipping centers when relevant
-- Mention benefits of proximity to these services for business operations
-
-Be helpful, conversational, and focus on property information.`;
+        console.log('Using AI mode with OpenAI API');
+        const systemPrompt = formatPropertyAssistantPrompt(
+          properties.length, 
+          pois.length, 
+          activeProperty ? { name: activeProperty.name, id: activeProperty.id } : null
+        );
 
         const chatHistory: ChatMessage[] = [
           { role: 'system', content: systemPrompt },
@@ -160,6 +155,7 @@ Be helpful, conversational, and focus on property information.`;
             if (foundProperty) {
               setActiveProperty(foundProperty);
               onSelectProperty(foundProperty);
+              console.log('Selected property from AI response:', foundProperty.name);
               toast({
                 title: "Property Selected",
                 description: `Now using ${foundProperty.name} as the active property.`,
@@ -175,11 +171,12 @@ Be helpful, conversational, and focus on property information.`;
             const matchingPois = findMatchingPOIs(poiType, pois);
             
             if (matchingPois.length > 0) {
-              const distance = 5 * 1.60934;
+              const distance = 5 * 1.60934; // 5 miles to km
               const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
               
               if (nearbyPois.length > 0) {
                 onShowPOIs(nearbyPois);
+                console.log('Showing POIs near property:', nearbyPois.length, poiType, 'locations');
                 toast({
                   title: `Found ${nearbyPois.length} locations`,
                   description: `Showing ${poiType} locations near ${activeProperty.name}`,
@@ -191,12 +188,16 @@ Be helpful, conversational, and focus on property information.`;
           addMessage(aiResponse, 'bot');
         } catch (error) {
           console.error('Error getting AI response:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.log('Falling back to local responses due to error:', errorMessage);
+          
           const fallbackResponse = 'Sorry, I had trouble connecting to my AI brain. Using local responses instead...\n\n' + 
                                   generateAIResponse(inputValue);
           addMessage(fallbackResponse, 'bot');
         }
       } else {
         // Use the local implementation if AI is disabled or no API key
+        console.log('Using local response generation (no AI)');
         setTimeout(() => {
           const response = generateAIResponse(inputValue);
           addMessage(response, 'bot');
@@ -239,6 +240,7 @@ Be helpful, conversational, and focus on property information.`;
     setUseAI(!!apiKey);
     if (apiKey) {
       setShowApiKeyInput(false);
+      console.log('API key updated, AI mode:', !!apiKey);
     }
   };
 
@@ -257,7 +259,7 @@ Be helpful, conversational, and focus on property information.`;
 
   const generateAIResponse = (query: string): string => {
     const lowerQuery = query.toLowerCase();
-    console.log("Processing query:", lowerQuery);
+    console.log("Processing local query:", lowerQuery);
     
     if (/^(hi|hello|hey|greetings|howdy)/.test(lowerQuery)) {
       const greetings = [
@@ -661,6 +663,7 @@ Be helpful, conversational, and focus on property information.`;
         if (property) {
           setActiveProperty(property);
           onSelectProperty(property);
+          console.log('Property selected from message click:', property.name);
           toast({
             title: "Property Selected",
             description: `Now viewing ${property.name}`,
@@ -672,6 +675,7 @@ Be helpful, conversational, and focus on property information.`;
         
         if (poi) {
           onSelectPOI(poi);
+          console.log('POI selected from message click:', poi.name);
           toast({
             title: "Location Selected",
             description: `Now viewing ${poi.name}`,
@@ -702,237 +706,3 @@ Be helpful, conversational, and focus on property information.`;
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleApiKeyInput}
-              className="h-8 w-8"
-              title={useAI ? "AI Mode Active" : "Configure AI"}
-            >
-              <Sparkles className={`h-4 w-4 ${useAI ? "text-primary" : "text-muted-foreground"}`} />
-            </Button>
-          </div>
-        </div>
-
-        {showApiKeyInput && (
-          <div className="p-2">
-            <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
-          </div>
-        )}
-
-        <div 
-          className="flex-1 p-4 overflow-y-auto space-y-4"
-          onClick={handleMessageClick}
-        >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] p-3 rounded-2xl ${
-                  message.sender === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-tr-none'
-                    : 'bg-secondary rounded-tl-none'
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  {message.sender === 'bot' && (
-                    <Bot className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  )}
-                  <div>
-                    <div 
-                      className="text-sm"
-                      dangerouslySetInnerHTML={{ __html: message.content }}
-                    />
-                    <p className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  {message.sender === 'user' && (
-                    <User className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-          {isThinking && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] p-3 bg-secondary rounded-2xl rounded-tl-none">
-                <div className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-0"></span>
-                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-150"></span>
-                    <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-300"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder={activeProperty 
-                ? `Ask about ${activeProperty.name}...` 
-                : "Ask about properties..."
-              }
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-secondary/50 border-input/50"
-              disabled={isThinking}
-            />
-            <Button
-              onClick={handleSendMessage}
-              size="icon"
-              className="h-10 w-10 rounded-full"
-              disabled={!inputValue.trim() || isThinking}
-            >
-              <SendHorizonal className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {!isOpen && (
-        <Button
-          onClick={handleToggleChat}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        >
-          <MessageSquare className="h-6 w-6" />
-        </Button>
-      )}
-
-      {isOpen && (
-        <div 
-          className={`fixed bottom-6 right-6 w-80 ${
-            isExpanded ? 'h-[80vh]' : 'h-96'
-          } bg-background border rounded-lg shadow-lg flex flex-col overflow-hidden z-50`}
-        >
-          <div className="flex items-center justify-between p-3 border-b">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="font-medium">
-                Property Assistant
-                {activeProperty && (
-                  <span className="ml-1 text-xs text-primary font-normal">
-                    ({activeProperty.name})
-                  </span>
-                )}
-              </h3>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleApiKeyInput}
-                className="h-8 w-8"
-                title={useAI ? "AI Mode Active" : "Configure AI"}
-              >
-                <Sparkles className={`h-4 w-4 ${useAI ? "text-primary" : "text-muted-foreground"}`} />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleToggleExpand} className="h-8 w-8">
-                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleCloseChat} className="h-8 w-8">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {showApiKeyInput && (
-            <div className="p-2">
-              <ApiKeyInput onApiKeyChange={handleApiKeyChange} />
-            </div>
-          )}
-
-          <div 
-            className="flex-1 p-4 overflow-y-auto space-y-4"
-            onClick={handleMessageClick}
-          >
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] p-3 rounded-2xl ${
-                    message.sender === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-tr-none'
-                      : 'bg-secondary rounded-tl-none'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    {message.sender === 'bot' && (
-                      <Bot className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                    )}
-                    <div>
-                      <div 
-                        className="text-sm"
-                        dangerouslySetInnerHTML={{ __html: message.content }}
-                      />
-                      <p className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    {message.sender === 'user' && (
-                      <User className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] p-3 bg-secondary rounded-2xl rounded-tl-none">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-5 w-5" />
-                    <div className="flex gap-1">
-                      <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-0"></span>
-                      <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-150"></span>
-                      <span className="h-2 w-2 bg-foreground/30 rounded-full animate-pulse delay-300"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="p-4 border-t">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder={activeProperty 
-                  ? `Ask about ${activeProperty.name}...` 
-                  : "Ask about properties..."
-                }
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-secondary/50 border-input/50"
-                disabled={isThinking}
-              />
-              <Button
-                onClick={handleSendMessage}
-                size="icon"
-                className="h-10 w-10 rounded-full"
-                disabled={!inputValue.trim() || isThinking}
-              >
-                <SendHorizonal className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-export default Chatbot;

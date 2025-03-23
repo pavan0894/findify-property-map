@@ -13,6 +13,7 @@ export async function getOpenAIResponse(
 ): Promise<string> {
   try {
     console.log('Sending request to OpenAI API with model:', model);
+    console.log('Number of messages in history:', messages.length);
     
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -35,6 +36,7 @@ export async function getOpenAIResponse(
     }
 
     const data = await response.json();
+    console.log('Received response from OpenAI API');
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);

@@ -23,6 +23,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
       setApiKey(savedApiKey);
       setIsApiKeySaved(true);
       onApiKeyChange(savedApiKey);
+      console.log('Loaded saved API key from localStorage');
     }
   }, [onApiKeyChange]);
 
@@ -35,6 +36,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
         title: "API Key Saved",
         description: "Your OpenAI API key has been saved in your browser.",
       });
+      console.log('API key saved to localStorage');
     }
   };
 
@@ -47,6 +49,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange }) => {
       title: "API Key Removed",
       description: "Your OpenAI API key has been removed.",
     });
+    console.log('API key cleared from localStorage');
   };
 
   return (
