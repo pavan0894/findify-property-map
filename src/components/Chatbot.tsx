@@ -24,7 +24,10 @@ import {
   getOpenAIResponse, 
   ChatMessage, 
   PriceComparisonType, 
-  formatPropertyAssistantPrompt 
+  formatPropertyAssistantPrompt,
+  normalizeShippingService,
+  extractPOITypes,
+  findBestMatch
 } from '@/utils/openAIUtils';
 
 interface ChatbotProps {
@@ -156,14 +159,16 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     setIsThinking(true);
     
     try {
-      const lowerQuery = inputValue.toLowerCase();
-      if (lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) {
-        if (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
-            lowerQuery.includes('close to') || lowerQuery.includes('by') || 
-            lowerQuery.includes('around')) {
-          console.log('Detected FedEx property search query');
-          handleFedExPropertySearch();
-        }
+      const normalizedQuery = inputValue.toLowerCase();
+      const normalizedShippingQuery = normalizeShippingService(normalizedQuery);
+      
+      // Handle FedEx-related queries with better recognition
+      if (normalizedShippingQuery === 'fedex' && 
+          (normalizedQuery.includes('properties') || normalizedQuery.includes('near') || 
+           normalizedQuery.includes('close to') || normalizedQuery.includes('by') || 
+           normalizedQuery.includes('around'))) {
+        console.log('Detected FedEx property search query');
+        handleFedExPropertySearch();
       }
       
       if (useAI && openAIKey) {
@@ -189,6 +194,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           
           console.log('Received AI response:', aiResponse.substring(0, 100) + '...');
           
+          // Process property references in response
           const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
           const propertyMatch = aiResponse.match(propertyRegex);
           
@@ -207,11 +213,12 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
             }
           }
           
+          // Process POI references in response with improved parsing
           const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
           const poiMatch = aiResponse.match(poiRegex);
           
           if (poiMatch && activeProperty) {
-            const poiType = poiMatch[2].trim().toLowerCase();
+            const poiType = normalizeShippingService(poiMatch[2].trim().toLowerCase());
             const matchingPois = findMatchingPOIs(poiType, pois);
             
             if (matchingPois.length > 0) {
@@ -353,7 +360,10 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     const lowerQuery = query.toLowerCase();
     console.log("Processing local query:", lowerQuery);
     
-    if ((lowerQuery.includes('fedex') || lowerQuery.includes('fed ex')) && 
+    // Handle shipping queries with better fuzzy matching
+    const normalizedShippingQuery = normalizeShippingService(lowerQuery);
+    
+    if ((normalizedShippingQuery === 'fedex') && 
         (lowerQuery.includes('properties') || lowerQuery.includes('near') || 
          lowerQuery.includes('close to') || lowerQuery.includes('by') || 
          lowerQuery.includes('around'))) {
@@ -364,6 +374,45 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       }, 100);
       
       return "Looking for properties near FedEx locations...";
+    }
+    
+    // Extract potential POI types to handle fuzzy queries
+    const possiblePOITypes = extractPOITypes(lowerQuery);
+    if (possiblePOITypes.length > 0 && 
+        (lowerQuery.includes('near') || lowerQuery.includes('close') || 
+         lowerQuery.includes('around') || lowerQuery.includes('find') || 
+         lowerQuery.includes('show'))) {
+           
+      if (activeProperty) {
+        const poiType = normalizeShippingService(possiblePOITypes[0]);
+        const matchingPois = findMatchingPOIs(poiType, pois);
+        
+        if (matchingPois.length > 0) {
+          const distance = 5 * 1.60934; // 5 miles to km
+          const nearbyPois = findPOIsNearProperty(matchingPois, activeProperty, distance);
+          
+          if (nearbyPois.length > 0) {
+            setTimeout(() => {
+              onShowPOIs(nearbyPois);
+              toast({
+                title: `Found ${nearbyPois.length} locations`,
+                description: `Showing ${poiType} locations near ${activeProperty.name}`,
+              });
+            }, 100);
+            
+            const poiLinks = nearbyPois.slice(0, 5).map(poi => {
+              const dist = calculateDistance(activeProperty.latitude, activeProperty.longitude, poi.latitude, poi.longitude);
+              const distStr = lowerQuery.includes('kilometer') || lowerQuery.includes('km') 
+                ? `${dist.toFixed(1)} km` 
+                : `${kmToMiles(dist).toFixed(1)} miles`;
+              
+              return `<a href="#" class="text-primary hover:underline" data-poi-id="${poi.id}">${poi.name}</a> (${distStr})`;
+            }).join(', ');
+            
+            return `I found ${nearbyPois.length} ${poiType} locations near ${activeProperty.name}. Here are the closest ones: ${poiLinks}.`;
+          }
+        }
+      }
     }
     
     if (/^(hi|hello|hey|greetings|howdy)/.test(lowerQuery)) {
@@ -668,340 +717,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     if (activeProperty) {
       const suggestions = [
         `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• "Find coffee shops within 2 miles of this property"\n• "Where is the nearest restaurant to this property?"\n• "Show me FedEx locations around this property"\n\nOr you can select a different property with "Use property [name]".`,
-        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest coffee shop"`,
-        `${activeProperty.name} is our active property. Some things you can ask:\n\n• "Are there any parks nearby?"\n• "Show me all the restaurants in the area"\n• "Where's the closest gas station?"`
-      ];
-      return suggestions[Math.floor(Math.random() * suggestions.length)];
-    }
-    
-    const defaultResponses = [
-      "I can help you find properties based on specific criteria. Try asking something like:\n\n• 'Show me properties where size is 108,000 sq ft'\n• 'Find properties with price under $5 million'\n• 'Show properties within 2 miles of a coffee shop'\n• 'What's the largest warehouse?'\n• 'Find me properties with loading docks'\n• 'What's the cheapest property?'\n• 'Where is the nearest restaurant?'",
-      
-      "I'm your property assistant! You can ask me questions like:\n\n• 'Show warehouses over 100,000 sq ft'\n• 'Which properties cost less than $4 million?'\n• 'Find buildings with security features'\n• 'What's the newest property available?'",
-      
-      "Looking for the perfect property? Try these questions:\n\n• 'Show the most expensive warehouse'\n• 'Find properties with office space'\n• 'What's the average price of all properties?'\n• 'Show me properties built after 2010'"
-    ];
-    
-    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-  };
-
-  const findBestPropertyMatch = (name: string, properties: Property[]): Property | null => {
-    const lowerName = name.toLowerCase();
-    
-    const exactMatch = properties.find(p => p.name.toLowerCase() === lowerName);
-    if (exactMatch) return exactMatch;
-    
-    const partialMatches = properties.filter(p => 
-      p.name.toLowerCase().includes(lowerName) || 
-      lowerName.includes(p.name.toLowerCase())
-    );
-    
-    if (partialMatches.length > 0) {
-      return partialMatches[0];
-    }
-    
-    return null;
-  };
-
-  const findMatchingPOIs = (query: string, pois: POI[]): POI[] => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery === 'fedex' || lowerQuery === 'fed ex') {
-      return pois.filter(poi => 
-        poi.name.toLowerCase().includes('fedex') || 
-        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('fedex'))
-      );
-    }
-    
-    if (lowerQuery === 'usps' || lowerQuery === 'post office' || lowerQuery === 'postal service') {
-      return pois.filter(poi => 
-        poi.name.toLowerCase().includes('usps') || 
-        poi.name.toLowerCase().includes('post office') ||
-        poi.type.toLowerCase().includes('post office')
-      );
-    }
-    
-    if (lowerQuery === 'ups') {
-      return pois.filter(poi => 
-        (poi.name.toLowerCase().includes('ups') && !poi.name.toLowerCase().includes('supplies')) ||
-        (poi.type.toLowerCase().includes('shipping') && poi.name.toLowerCase().includes('ups'))
-      );
-    }
-    
-    return pois.filter(poi => 
-      poi.type.toLowerCase().includes(lowerQuery) ||
-      poi.name.toLowerCase().includes(lowerQuery)
-    );
-  };
-
-  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'A') {
-      e.preventDefault();
-      
-      if (target.hasAttribute('data-property-id')) {
-        const propertyId = target.getAttribute('data-property-id');
-        const property = properties.find(p => p.id === propertyId);
-        
-        if (property) {
-          setActiveProperty(property);
-          onSelectProperty(property);
-          console.log('Property selected from message click:', property.name);
-          toast({
-            title: "Property Selected",
-            description: `Now viewing ${property.name}`,
-          });
-        }
-      } else if (target.hasAttribute('data-poi-id')) {
-        const poiId = target.getAttribute('data-poi-id');
-        const poi = pois.find(p => p.id === poiId);
-        
-        if (poi) {
-          onSelectPOI(poi);
-          console.log('POI selected from message click:', poi.name);
-          toast({
-            title: "Location Selected",
-            description: `Now viewing ${poi.name}`,
-          });
-        }
-      }
-    }
-  };
-
-  return (
-    <div className="chatbot">
-      {!embedded && (
-        <div className="fixed bottom-4 right-4 flex flex-col items-end z-50">
-          {isOpen ? (
-            <div 
-              className={`${isExpanded ? 'w-[600px] h-[600px]' : 'w-96 h-[500px]'} bg-background border shadow-lg rounded-lg flex flex-col overflow-hidden transition-all duration-200`}
-            >
-              <div className="flex items-center justify-between p-4 border-b">
-                <div className="flex items-center space-x-2">
-                  <Bot className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold">Property Assistant</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {openAIKey ? (
-                    <Sparkles className="h-4 w-4 text-yellow-500" />
-                  ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={toggleApiKeyInput}
-                      className="h-8 w-8"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleToggleExpand}
-                    className="h-8 w-8"
-                  >
-                    {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleCloseChat}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-4 border-b">
-                <ApiKeyInput 
-                  onApiKeyChange={handleApiKeyChange} 
-                  onModelChange={handleModelChange}
-                />
-              </div>
-              
-              <div 
-                className="flex-1 overflow-y-auto p-4 space-y-4"
-                onClick={handleMessageClick}
-              >
-                {messages.map((message) => (
-                  <div 
-                    key={message.id}
-                    className={`flex ${message.sender === 'bot' ? 'justify-start' : 'justify-end'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        message.sender === 'bot'
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-primary text-primary-foreground'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 mb-1">
-                        {message.sender === 'bot' ? (
-                          <Bot className="h-4 w-4" />
-                        ) : (
-                          <User className="h-4 w-4" />
-                        )}
-                        <span className="text-xs font-medium">
-                          {message.sender === 'bot' ? 'Assistant' : 'You'}
-                        </span>
-                      </div>
-                      <div 
-                        className="whitespace-pre-line text-sm"
-                        dangerouslySetInnerHTML={{ __html: message.content }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {isThinking && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] rounded-lg p-3 bg-muted text-muted-foreground">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <Bot className="h-4 w-4" />
-                        <span className="text-xs font-medium">Assistant</span>
-                      </div>
-                      <div className="text-sm">
-                        Thinking<span className="animate-pulse">...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              
-              <div className="p-4 border-t">
-                <div className="flex space-x-2">
-                  <Input
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask about properties or locations..."
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={isThinking || !inputValue.trim()}
-                    className="shrink-0"
-                  >
-                    <SendHorizonal className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <Button
-              onClick={handleToggleChat}
-              className="rounded-full h-12 w-12 flex items-center justify-center"
-              size="icon"
-            >
-              <MessageSquare className="h-6 w-6" />
-            </Button>
-          )}
-        </div>
-      )}
-      
-      {embedded && (
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center space-x-2">
-              <Bot className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Property Assistant</h3>
-            </div>
-            <div className="flex items-center space-x-2">
-              {openAIKey ? (
-                <Sparkles className="h-4 w-4 text-yellow-500" />
-              ) : (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={toggleApiKeyInput}
-                  className="h-8 w-8"
-                >
-                  <Sparkles className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          <div className="p-4 border-b">
-            <ApiKeyInput 
-              onApiKeyChange={handleApiKeyChange}
-              onModelChange={handleModelChange}
-            />
-          </div>
-          
-          <div 
-            className="flex-1 overflow-y-auto p-4 space-y-4"
-            onClick={handleMessageClick}
-          >
-            {messages.map((message) => (
-              <div 
-                key={message.id}
-                className={`flex ${message.sender === 'bot' ? 'justify-start' : 'justify-end'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.sender === 'bot'
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-primary text-primary-foreground'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2 mb-1">
-                    {message.sender === 'bot' ? (
-                      <Bot className="h-4 w-4" />
-                    ) : (
-                      <User className="h-4 w-4" />
-                    )}
-                    <span className="text-xs font-medium">
-                      {message.sender === 'bot' ? 'Assistant' : 'You'}
-                    </span>
-                  </div>
-                  <div 
-                    className="whitespace-pre-line text-sm"
-                    dangerouslySetInnerHTML={{ __html: message.content }}
-                  />
-                </div>
-              </div>
-            ))}
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-3 bg-muted text-muted-foreground">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Bot className="h-4 w-4" />
-                    <span className="text-xs font-medium">Assistant</span>
-                  </div>
-                  <div className="text-sm">
-                    Thinking<span className="animate-pulse">...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-          
-          <div className="p-4 border-t mt-auto">
-            <div className="flex space-x-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask about properties or locations..."
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={isThinking || !inputValue.trim()}
-                className="shrink-0"
-              >
-                <SendHorizonal className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Chatbot;
-
+        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest

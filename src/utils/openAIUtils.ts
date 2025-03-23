@@ -96,10 +96,97 @@ When asked about shipping or delivery options:
 - Provide distances to shipping centers when relevant
 - Mention benefits of proximity to these services for business operations
 
+Handle dynamic and complex questions by:
+- Breaking down multi-part questions and addressing each part
+- Recognizing misspelled location or property names (like "fedec" instead of "fedex")
+- Understanding context from previous messages
+- Identifying intent even when phrasing is unclear or contains typos
+
+For ambiguous requests:
+- Ask clarifying questions to better understand user needs
+- Suggest possible interpretations of their request
+- Provide examples of how to phrase their query more clearly
+
 If the user asks about general information outside your property database:
 - Acknowledge you don't have direct access to that information
 - Suggest relevant property features that might address their needs
 - For POI questions outside your database, suggest looking at nearby options visible on the map
 
 Be helpful, conversational, and focus on property information.`;
+}
+
+// Helper function to process misspelled or partial queries
+export function findBestMatch(query: string, possibleMatches: string[]): string | null {
+  if (!query || !possibleMatches || possibleMatches.length === 0) return null;
+  
+  const lowerQuery = query.toLowerCase().trim();
+  
+  // Exact match
+  const exactMatch = possibleMatches.find(match => 
+    match.toLowerCase() === lowerQuery
+  );
+  
+  if (exactMatch) return exactMatch;
+  
+  // Contains match
+  const containsMatch = possibleMatches.find(match => 
+    match.toLowerCase().includes(lowerQuery) || 
+    lowerQuery.includes(match.toLowerCase())
+  );
+  
+  if (containsMatch) return containsMatch;
+  
+  // Fuzzy match - check if at least 70% of characters match
+  for (const match of possibleMatches) {
+    const lowerMatch = match.toLowerCase();
+    let matchCount = 0;
+    
+    // Simple character match count
+    for (let i = 0; i < Math.min(lowerQuery.length, lowerMatch.length); i++) {
+      if (lowerQuery[i] === lowerMatch[i]) matchCount++;
+    }
+    
+    const similarityScore = matchCount / Math.max(lowerQuery.length, lowerMatch.length);
+    if (similarityScore >= 0.7) return match;
+  }
+  
+  return null;
+}
+
+// Process potential POI types from user input
+export function extractPOITypes(query: string): string[] {
+  const lowerQuery = query.toLowerCase();
+  const poiTypes = [
+    'fedex', 'fed ex', 'federal express',
+    'ups', 'united parcel service',
+    'usps', 'post office', 'postal service',
+    'airport', 'shipping', 'logistics',
+    'restaurant', 'cafe', 'coffee', 'starbucks',
+    'hotel', 'gas station', 'grocery', 'supermarket',
+    'bank', 'atm', 'school', 'hospital', 'pharmacy',
+    'park', 'gym', 'fitness'
+  ];
+  
+  return poiTypes.filter(type => lowerQuery.includes(type));
+}
+
+// Helper to normalize common shipping service variations
+export function normalizeShippingService(query: string): string {
+  const lowerQuery = query.toLowerCase();
+  
+  if (lowerQuery.includes('fedex') || lowerQuery.includes('fed ex') || 
+      lowerQuery.includes('federal express') || lowerQuery.includes('fedec')) {
+    return 'fedex';
+  }
+  
+  if (lowerQuery.includes('ups') || lowerQuery.includes('united parcel')) {
+    return 'ups';
+  }
+  
+  if (lowerQuery.includes('usps') || lowerQuery.includes('post office') || 
+      lowerQuery.includes('postal service')) {
+    return 'usps';
+  }
+  
+  return query;
 }
