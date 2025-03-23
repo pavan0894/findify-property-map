@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Property } from '@/utils/data';
 import { CBRE_GREEN } from '@/utils/mapUtils';
+import { MapPin } from 'lucide-react';
 
 interface MapMarkerProps {
   property: Property;
@@ -35,24 +36,33 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         const markerEl = document.createElement('div');
         markerEl.className = 'property-marker';
         
-        const icon = document.createElement('div');
+        // Create the pin element using a typical Google Maps pin style
+        const pinEl = document.createElement('div');
         
         if (isFiltered) {
-          icon.className = 'h-8 w-8 text-white rounded-full shadow-lg flex items-center justify-center';
-          icon.style.backgroundColor = CBRE_GREEN;
+          pinEl.className = 'flex items-center justify-center';
+          pinEl.innerHTML = `
+            <div class="relative">
+              <div class="h-5 w-5 rounded-full shadow-md ${isFiltered ? 'bg-[#003f2d]' : 'bg-gray-500 opacity-60'}"></div>
+              <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+            </div>
+          `;
         } else {
-          icon.className = 'h-8 w-8 text-white rounded-full shadow-md opacity-60 flex items-center justify-center';
-          icon.style.backgroundColor = '#999999';
+          pinEl.className = 'flex items-center justify-center';
+          pinEl.innerHTML = `
+            <div class="relative">
+              <div class="h-5 w-5 rounded-full shadow-md bg-gray-500 opacity-60"></div>
+              <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+            </div>
+          `;
         }
         
-        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>';
-        
-        markerEl.appendChild(icon);
+        markerEl.appendChild(pinEl);
         
         // Create the marker and add it to the map
         const marker = new mapboxgl.Marker({
           element: markerEl,
-          anchor: 'bottom',
+          anchor: 'center',
         }).setLngLat([property.longitude, property.latitude]);
         
         // Add click event
