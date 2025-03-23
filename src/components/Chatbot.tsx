@@ -113,6 +113,21 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     return properties.filter(p => p.size >= minSize && p.size <= maxSize);
   };
 
+  const filterPropertiesByPrice = (targetPrice: number, comparisonType: PriceComparisonType, properties: Property[]): Property[] => {
+    switch (comparisonType) {
+      case "below":
+        return properties.filter(p => p.price <= targetPrice);
+      case "above":
+        return properties.filter(p => p.price >= targetPrice);
+      case "around":
+      default:
+        const tolerance = 0.25; // 25% tolerance
+        const minPrice = targetPrice * (1 - tolerance);
+        const maxPrice = targetPrice * (1 + tolerance);
+        return properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
+    }
+  };
+
   const addMessage = (content: string, sender: 'user' | 'bot') => {
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -984,4 +999,3 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
 };
 
 export default Chatbot;
-
