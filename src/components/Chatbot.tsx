@@ -763,7 +763,239 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
 
   return (
     <div className="chatbot">
-      {/* Render methods and JSX */}
+      {!embedded && (
+        <div className="fixed bottom-4 right-4 flex flex-col items-end z-50">
+          {isOpen ? (
+            <div 
+              className={`${isExpanded ? 'w-[600px] h-[600px]' : 'w-96 h-[500px]'} bg-background border shadow-lg rounded-lg flex flex-col overflow-hidden transition-all duration-200`}
+            >
+              <div className="flex items-center justify-between p-4 border-b">
+                <div className="flex items-center space-x-2">
+                  <Bot className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Property Assistant</h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {openAIKey ? (
+                    <Sparkles className="h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={toggleApiKeyInput}
+                      className="h-8 w-8"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleToggleExpand}
+                    className="h-8 w-8"
+                  >
+                    {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleCloseChat}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="p-4 border-b">
+                <ApiKeyInput 
+                  apiKey={openAIKey} 
+                  onApiKeyChange={handleApiKeyChange} 
+                  model={selectedModel}
+                  onModelChange={handleModelChange}
+                />
+              </div>
+              
+              <div 
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+                onClick={handleMessageClick}
+              >
+                {messages.map((message) => (
+                  <div 
+                    key={message.id}
+                    className={`flex ${message.sender === 'bot' ? 'justify-start' : 'justify-end'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.sender === 'bot'
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-primary text-primary-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        {message.sender === 'bot' ? (
+                          <Bot className="h-4 w-4" />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                        <span className="text-xs font-medium">
+                          {message.sender === 'bot' ? 'Assistant' : 'You'}
+                        </span>
+                      </div>
+                      <div 
+                        className="whitespace-pre-line text-sm"
+                        dangerouslySetInnerHTML={{ __html: message.content }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {isThinking && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] rounded-lg p-3 bg-muted text-muted-foreground">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Bot className="h-4 w-4" />
+                        <span className="text-xs font-medium">Assistant</span>
+                      </div>
+                      <div className="text-sm">
+                        Thinking<span className="animate-pulse">...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              <div className="p-4 border-t">
+                <div className="flex space-x-2">
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask about properties or locations..."
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={isThinking || !inputValue.trim()}
+                    className="shrink-0"
+                  >
+                    <SendHorizonal className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={handleToggleChat}
+              className="rounded-full h-12 w-12 flex items-center justify-center"
+              size="icon"
+            >
+              <MessageSquare className="h-6 w-6" />
+            </Button>
+          )}
+        </div>
+      )}
+      
+      {embedded && (
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Property Assistant</h3>
+            </div>
+            <div className="flex items-center space-x-2">
+              {openAIKey ? (
+                <Sparkles className="h-4 w-4 text-yellow-500" />
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={toggleApiKeyInput}
+                  className="h-8 w-8"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-4 border-b">
+            <ApiKeyInput 
+              apiKey={openAIKey} 
+              onApiKeyChange={handleApiKeyChange} 
+              model={selectedModel}
+              onModelChange={handleModelChange}
+            />
+          </div>
+          
+          <div 
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+            onClick={handleMessageClick}
+          >
+            {messages.map((message) => (
+              <div 
+                key={message.id}
+                className={`flex ${message.sender === 'bot' ? 'justify-start' : 'justify-end'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.sender === 'bot'
+                      ? 'bg-muted text-muted-foreground'
+                      : 'bg-primary text-primary-foreground'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 mb-1">
+                    {message.sender === 'bot' ? (
+                      <Bot className="h-4 w-4" />
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
+                    <span className="text-xs font-medium">
+                      {message.sender === 'bot' ? 'Assistant' : 'You'}
+                    </span>
+                  </div>
+                  <div 
+                    className="whitespace-pre-line text-sm"
+                    dangerouslySetInnerHTML={{ __html: message.content }}
+                  />
+                </div>
+              </div>
+            ))}
+            {isThinking && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-3 bg-muted text-muted-foreground">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Bot className="h-4 w-4" />
+                    <span className="text-xs font-medium">Assistant</span>
+                  </div>
+                  <div className="text-sm">
+                    Thinking<span className="animate-pulse">...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <div className="p-4 border-t mt-auto">
+            <div className="flex space-x-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask about properties or locations..."
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={isThinking || !inputValue.trim()}
+                className="shrink-0"
+              >
+                <SendHorizonal className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
