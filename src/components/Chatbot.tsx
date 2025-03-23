@@ -106,6 +106,13 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     }
   }, []);
 
+  const filterPropertiesBySize = (targetSize: number, properties: Property[]): Property[] => {
+    const tolerance = 0.25; // 25% tolerance
+    const minSize = targetSize * (1 - tolerance);
+    const maxSize = targetSize * (1 + tolerance);
+    return properties.filter(p => p.size >= minSize && p.size <= maxSize);
+  };
+
   const addMessage = (content: string, sender: 'user' | 'bot') => {
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -320,26 +327,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
     console.log('Model updated:', model);
-  };
-
-  const filterPropertiesByPrice = (targetPrice: number, comparisonType: PriceComparisonType, properties: Property[]): Property[] => {
-    if (comparisonType === 'below') {
-      return properties.filter(p => p.price < targetPrice);
-    } else if (comparisonType === 'above') {
-      return properties.filter(p => p.price > targetPrice);
-    } else {
-      const tolerance = 0.15;
-      const minPrice = targetPrice * (1 - tolerance);
-      const maxPrice = targetPrice * (1 + tolerance);
-      return properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
-    }
-  };
-
-  const filterPropertiesBySize = (targetSize: number, properties: Property[]): Property[] => {
-    const tolerance = 0.25; // 25% tolerance
-    const minSize = targetSize * (1 - tolerance);
-    const maxSize = targetSize * (1 + tolerance);
-    return properties.filter(p => p.size >= minSize && p.size <= maxSize);
   };
 
   const generateAIResponse = (query: string): string => {
@@ -808,9 +795,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
               
               <div className="p-4 border-b">
                 <ApiKeyInput 
-                  apiKey={openAIKey} 
                   onApiKeyChange={handleApiKeyChange} 
-                  model={selectedModel}
                   onModelChange={handleModelChange}
                 />
               </div>
@@ -920,9 +905,7 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           
           <div className="p-4 border-b">
             <ApiKeyInput 
-              apiKey={openAIKey} 
-              onApiKeyChange={handleApiKeyChange} 
-              model={selectedModel}
+              onApiKeyChange={handleApiKeyChange}
               onModelChange={handleModelChange}
             />
           </div>
@@ -1001,3 +984,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
 };
 
 export default Chatbot;
+

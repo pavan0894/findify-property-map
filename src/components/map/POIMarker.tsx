@@ -52,8 +52,8 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
         const pinEl = document.createElement('div');
         pinEl.className = 'relative';
         pinEl.innerHTML = `
-          <div class="h-4 w-4 rounded-full shadow-md ${isSelected ? 'scale-110' : ''}" style="background-color: ${pinColor}"></div>
-          <div class="h-1.5 w-1.5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+          <div class="h-5 w-5 rounded-full shadow-md ${isSelected ? 'scale-125 ring-2 ring-white' : ''}" style="background-color: ${pinColor}"></div>
+          <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
         `;
         
         markerEl.appendChild(pinEl);
@@ -112,12 +112,16 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
     // Helper function to get pin color based on POI type
     function getPinColor(type: string): string {
       const typeLC = type.toLowerCase();
+      const nameLC = poi.name.toLowerCase();
+      
+      // Make FedEx locations more visible with a distinctive color
+      if (nameLC.includes('fedex')) {
+        return '#9b59b6'; // Purple for FedEx
+      }
       
       switch(true) {
-        case poi.name.toLowerCase().includes('fedex'):
-          return '#9b59b6'; // Purple
-        case poi.name.toLowerCase().includes('ups'):
-          return '#f39c12'; // Amber
+        case nameLC.includes('ups'):
+          return '#f39c12'; // Amber for UPS
         case typeLC === 'restaurant':
           return '#e74c3c'; // Red
         case typeLC === 'coffee shop':
@@ -127,10 +131,11 @@ const POIMarker = ({ poi, map, isSelected }: POIMarkerProps) => {
         case typeLC === 'office' || typeLC === 'shipping':
           return '#7f8c8d'; // Gray
         default:
-          return '#2980b9'; // Blue
+          return '#2980b9'; // Blue for all other POIs
       }
     }
     
+    // Cleanup function
     return () => {
       if (markerRef.current) {
         markerRef.current.remove();
