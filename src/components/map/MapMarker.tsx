@@ -3,7 +3,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Property } from '@/utils/data';
 import { CBRE_GREEN } from '@/utils/mapUtils';
-import { MapPin } from 'lucide-react';
 
 interface MapMarkerProps {
   property: Property;
@@ -36,23 +35,23 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         const markerEl = document.createElement('div');
         markerEl.className = 'property-marker';
         
-        // Create the pin element using a typical Google Maps pin style
+        // Create the pin element using a smaller Google Maps style pin
         const pinEl = document.createElement('div');
         
         if (isFiltered) {
           pinEl.className = 'flex items-center justify-center';
           pinEl.innerHTML = `
             <div class="relative">
-              <div class="h-5 w-5 rounded-full shadow-md ${isFiltered ? 'bg-[#003f2d]' : 'bg-gray-500 opacity-60'}"></div>
-              <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+              <div class="h-4 w-4 rounded-full shadow-md ${isFiltered ? 'bg-[#003f2d]' : 'bg-gray-500 opacity-60'}"></div>
+              <div class="h-1.5 w-1.5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
             </div>
           `;
         } else {
           pinEl.className = 'flex items-center justify-center';
           pinEl.innerHTML = `
             <div class="relative">
-              <div class="h-5 w-5 rounded-full shadow-md bg-gray-500 opacity-60"></div>
-              <div class="h-2 w-2 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
+              <div class="h-4 w-4 rounded-full shadow-md bg-gray-500 opacity-60"></div>
+              <div class="h-1.5 w-1.5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"></div>
             </div>
           `;
         }
