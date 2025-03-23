@@ -73,6 +73,9 @@ export function findPOIsNearProperty(
 export function calculateCenter(properties: Property[]): [number, number] {
   if (!properties.length) return [-96.7970, 32.7767]; // Default to Dallas area
   
+  // Log the properties to help with debugging
+  console.log(`Calculating center for ${properties.length} properties`);
+  
   const sum = properties.reduce(
     (acc, property) => {
       return {
@@ -83,24 +86,42 @@ export function calculateCenter(properties: Property[]): [number, number] {
     { lat: 0, lng: 0 }
   );
   
-  return [sum.lng / properties.length, sum.lat / properties.length];
+  const center: [number, number] = [sum.lng / properties.length, sum.lat / properties.length];
+  console.log('Calculated center:', center);
+  return center;
 }
 
 // Function to fit map bounds to the given properties
 export function fitMapToProperties(map: mapboxgl.Map, properties: Property[]) {
-  if (!properties.length) return;
+  if (!properties.length) {
+    console.log('No properties to fit bounds to');
+    return;
+  }
   
-  const bounds = new mapboxgl.LngLatBounds();
-  
-  properties.forEach(property => {
-    bounds.extend([property.longitude, property.latitude]);
-  });
-  
-  map.fitBounds(bounds, {
-    padding: 100, // Increased padding to ensure all markers are visible
-    maxZoom: 11, // Lower maxZoom to ensure we don't zoom in too close
-    duration: 1000 // Faster animation
-  });
+  try {
+    const bounds = new mapboxgl.LngLatBounds();
+    
+    console.log(`Fitting bounds to ${properties.length} properties`);
+    
+    // Add each property to the bounds
+    properties.forEach(property => {
+      bounds.extend([property.longitude, property.latitude]);
+    });
+    
+    // Log the bounds
+    console.log('Bounds:', bounds.toArray());
+    
+    // Fit the map to the bounds
+    map.fitBounds(bounds, {
+      padding: 100, // Increased padding to ensure all markers are visible
+      maxZoom: 11, // Lower maxZoom to ensure we don't zoom in too close
+      duration: 1000 // Faster animation
+    });
+    
+    console.log('Map fitted to bounds');
+  } catch (error) {
+    console.error('Error fitting map to properties:', error);
+  }
 }
 
 // Filter POIs by type - improved to handle logistics-specific POI types

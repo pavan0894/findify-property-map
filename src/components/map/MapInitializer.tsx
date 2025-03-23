@@ -27,7 +27,7 @@ const MapInitializer = ({
     if (!mapContainer.current || mapRef.current || isInitialized || !mapToken) return;
 
     try {
-      console.log('Initializing map with token:', mapToken);
+      console.log('Initializing map with token:', mapToken.substring(0, 8) + '...');
       
       // Set Mapbox token
       mapboxgl.accessToken = mapToken;
@@ -54,13 +54,18 @@ const MapInitializer = ({
       mapInstance.on('load', () => {
         console.log('Map loaded successfully');
         setIsInitialized(true);
-        onMapReady(mapInstance);
         
-        // Fit map to properties after it's fully loaded
-        if (properties.length > 0) {
-          console.log(`Fitting map to ${properties.length} properties`);
-          fitMapToProperties(mapInstance, properties);
-        }
+        // Delay slightly to ensure map is fully ready
+        setTimeout(() => {
+          // Fit map to properties after it's fully loaded
+          if (properties.length > 0) {
+            console.log(`Fitting map to ${properties.length} properties`);
+            fitMapToProperties(mapInstance, properties);
+          }
+          
+          // Notify parent component that map is ready
+          onMapReady(mapInstance);
+        }, 100);
       });
       
       // Handle errors

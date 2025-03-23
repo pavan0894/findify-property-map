@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Property } from '@/utils/data';
 import { CBRE_GREEN } from '@/utils/mapUtils';
@@ -13,26 +13,25 @@ interface MapMarkerProps {
 
 const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerProps) => {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const [isAdded, setIsAdded] = useState(false);
   
   useEffect(() => {
-    // Skip if map is not available
-    if (!map) {
-      console.log('Map not available for marker', property.id);
+    // Skip if map is not available or marker already added
+    if (!map || isAdded) {
       return;
-    }
-    
-    // If marker already exists, remove it first to prevent duplicates
-    if (markerRef.current) {
-      markerRef.current.remove();
-      markerRef.current = null;
     }
     
     // Create and add marker
     const createMarker = () => {
       try {
+        // Remove existing marker if any
+        if (markerRef.current) {
+          markerRef.current.remove();
+        }
+        
         // Create marker element
         const markerEl = document.createElement('div');
-        markerEl.className = 'flex items-center justify-center';
+        markerEl.className = 'property-marker'; // Add a class for easier debugging
         
         const icon = document.createElement('div');
         
@@ -58,12 +57,13 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
         marker.addTo(map);
         
         // Add click event
-        marker.getElement().addEventListener('click', () => {
+        markerEl.addEventListener('click', () => {
           onSelectProperty(property);
         });
         
         markerRef.current = marker;
-        console.log('Marker added for property', property.id);
+        setIsAdded(true);
+        console.log(`Marker added for property ${property.id} at [${property.longitude}, ${property.latitude}]`);
       } catch (error) {
         console.error('Error creating marker for property', property.id, error);
       }
@@ -71,19 +71,36 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
     
     // Check if map is loaded before adding the marker
     if (map.loaded()) {
+      console.log(`Map is loaded, adding marker for property ${property.id}`);
       createMarker();
     } else {
-      map.once('load', createMarker);
+      console.log(`Map not yet loaded, waiting for load event for property ${property.id}`);
+      map.once('load', () => {
+        console.log(`Map load event fired, now adding marker for property ${property.id}`);
+        createMarker();
+      });
     }
     
     // Cleanup
     return () => {
       if (markerRef.current) {
+        console.log(`Removing marker for property ${property.id}`);
         markerRef.current.remove();
         markerRef.current = null;
+        setIsAdded(false);
       }
     };
-  }, [map, property, isFiltered, onSelectProperty]);
+  }, [map, property, isFiltered, onSelectProperty, isAdded]);
+
+  // Update marker if isFiltered changes
+  useEffect(() => {
+    if (map && isAdded && markerRef.current) {
+      // Simply recreate the marker if isFiltered changes
+      markerRef.current.remove();
+      markerRef.current = null;
+      setIsAdded(false);
+    }
+  }, [isFiltered, map, isAdded]);
   
   return null;
 };
