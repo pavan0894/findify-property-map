@@ -41,6 +41,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapToken] = useState<string>(MAPBOX_TOKEN);
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
+  const [renderTrigger, setRenderTrigger] = useState(0);
   
   // Track when map loads
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
@@ -48,6 +49,11 @@ const Map = forwardRef<MapRef, MapProps>(({
     setMap(mapInstance);
     setMapLoaded(true);
     setMapError(null);
+    
+    // Add a small delay and then trigger a re-render to ensure markers are created
+    setTimeout(() => {
+      setRenderTrigger(prev => prev + 1);
+    }, 500);
   }, []);
 
   const handleMapError = useCallback((error: string) => {
@@ -64,15 +70,17 @@ const Map = forwardRef<MapRef, MapProps>(({
   useEffect(() => {
     if (mapLoaded && map) {
       console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
+      // Force re-render to ensure markers are created
+      setRenderTrigger(prev => prev + 1);
     }
   }, [mapLoaded, map, properties.length, filteredProperties.length]);
 
   // Log marker creation status
   useEffect(() => {
     if (mapLoaded && map && properties.length > 0) {
-      console.log(`Ready to create ${properties.length} markers for properties`);
+      console.log(`Ready to create ${properties.length} markers for properties (render trigger: ${renderTrigger})`);
     }
-  }, [mapLoaded, map, properties]);
+  }, [mapLoaded, map, properties, renderTrigger]);
 
   // Handle POIs for selected property
   useEffect(() => {
@@ -129,7 +137,7 @@ const Map = forwardRef<MapRef, MapProps>(({
           {console.log('Rendering markers for', allProperties.length, 'properties')}
           {allProperties.map(property => (
             <MapMarker
-              key={`marker-${property.id}`}
+              key={`marker-${property.id}-${renderTrigger}`}
               property={property}
               map={map}
               isFiltered={filteredProperties.some(fp => fp.id === property.id)}
@@ -139,7 +147,7 @@ const Map = forwardRef<MapRef, MapProps>(({
           
           {activePOIs.map(poi => (
             <POIMarker
-              key={`poi-${poi.id}`}
+              key={`poi-${poi.id}-${renderTrigger}`}
               poi={poi}
               map={map}
               isSelected={selectedPOI?.id === poi.id}

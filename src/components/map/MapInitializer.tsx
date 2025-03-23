@@ -56,16 +56,17 @@ const MapInitializer = ({
         console.log('Map loaded successfully');
         setIsInitialized(true);
         
-        // Notify parent component that map is ready immediately
+        // Notify parent component that map is ready
         onMapReady(mapInstance);
         
-        // Then fit map to properties
-        setTimeout(() => {
-          if (properties.length > 0) {
-            console.log(`Fitting map to ${properties.length} properties`);
+        // Then fit map to properties after a brief delay
+        if (properties.length > 0) {
+          console.log(`Will fit map to ${properties.length} properties soon`);
+          setTimeout(() => {
+            console.log(`Now fitting map to ${properties.length} properties`);
             fitMapToProperties(mapInstance, properties);
-          }
-        }, 100);
+          }, 500); // Increased delay for better reliability
+        }
       });
       
       // Handle errors

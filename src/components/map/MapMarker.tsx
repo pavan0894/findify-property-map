@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Property } from '@/utils/data';
@@ -25,6 +26,7 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
     if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
+      setIsAdded(false);
     }
     
     const createMarker = () => {
@@ -53,13 +55,13 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
           anchor: 'bottom',
         }).setLngLat([property.longitude, property.latitude]);
         
-        marker.addTo(map);
-        
         // Add click event
         markerEl.addEventListener('click', () => {
           onSelectProperty(property);
         });
         
+        // Add marker to map
+        marker.addTo(map);
         markerRef.current = marker;
         setIsAdded(true);
         console.log(`✅ Marker added for property ${property.id} at [${property.longitude}, ${property.latitude}]`);
@@ -68,22 +70,10 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
       }
     };
     
-    // Create marker immediately if map is already loaded
-    if (map.loaded()) {
-      console.log(`Map is loaded, adding marker for property ${property.id}`);
+    // Force a slight delay before adding markers to ensure map is ready
+    setTimeout(() => {
       createMarker();
-    } else {
-      // Otherwise wait for map to load
-      console.log(`Map not loaded yet, waiting for load event for property ${property.id}`);
-      
-      const onMapLoad = () => {
-        console.log(`Map load event fired, now adding marker for property ${property.id}`);
-        createMarker();
-        map.off('load', onMapLoad);
-      };
-      
-      map.on('load', onMapLoad);
-    }
+    }, 300);
     
     // Cleanup
     return () => {
