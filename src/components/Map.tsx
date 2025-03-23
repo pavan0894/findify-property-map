@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -46,14 +45,12 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [propertiesHighlight, setPropertiesHighlight] = useState<Property[]>([]);
   
-  // Track when map loads
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
     setMap(mapInstance);
     setMapLoaded(true);
     setMapError(null);
     
-    // Add a small delay and then trigger a re-render to ensure markers are created
     setTimeout(() => {
       setRenderTrigger(prev => prev + 1);
     }, 500);
@@ -70,23 +67,19 @@ const Map = forwardRef<MapRef, MapProps>(({
     fitMapToProperties(map, propsToFit);
   }, [map, properties, propertiesHighlight]);
 
-  // Track property changes
   useEffect(() => {
     if (mapLoaded && map) {
       console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
-      // Force re-render to ensure markers are created
       setRenderTrigger(prev => prev + 1);
     }
   }, [mapLoaded, map, properties.length, filteredProperties.length]);
 
-  // Log marker creation status
   useEffect(() => {
     if (mapLoaded && map && properties.length > 0) {
       console.log(`Ready to create ${properties.length} markers for properties (render trigger: ${renderTrigger})`);
     }
   }, [mapLoaded, map, properties, renderTrigger]);
 
-  // Handle POIs for selected property
   useEffect(() => {
     if (selectedProperty && map) {
       const nearbyPOIs = findPOIsNearProperty(
@@ -98,19 +91,16 @@ const Map = forwardRef<MapRef, MapProps>(({
       setActivePOIs(nearbyPOIs);
       console.log(`Found ${nearbyPOIs.length} POIs near selected property`);
       
-      // Ensure POIs are visible even if they were set before the map was fully loaded
       setTimeout(() => {
         setRenderTrigger(prev => prev + 1);
       }, 200);
     }
   }, [selectedProperty, pointsOfInterest, maxDistance, map]);
 
-  // Handle selected POI
   useEffect(() => {
     if (selectedPOI && !activePOIs.some(poi => poi.id === selectedPOI.id)) {
       setActivePOIs(prev => [...prev, selectedPOI]);
       
-      // Focus the map on the selected POI if map is available
       if (map && mapLoaded) {
         map.flyTo({
           center: [selectedPOI.longitude, selectedPOI.latitude],
@@ -121,7 +111,6 @@ const Map = forwardRef<MapRef, MapProps>(({
     }
   }, [selectedPOI, activePOIs, map, mapLoaded]);
 
-  // Expose methods via ref
   const clearPOIs = useCallback(() => {
     setActivePOIs([]);
     setPropertiesHighlight([]);
@@ -132,24 +121,20 @@ const Map = forwardRef<MapRef, MapProps>(({
       console.log(`Showing ${pois.length} POIs on map`);
       setActivePOIs(pois);
       
-      // If map is available, fit to include all POIs
       if (map && mapLoaded && pois.length > 0) {
         try {
           const bounds = new mapboxgl.LngLatBounds();
           
-          // Add each POI to the bounds
           pois.forEach(poi => {
             bounds.extend([poi.longitude, poi.latitude]);
           });
           
-          // Fit the map to the bounds with some padding
           map.fitBounds(bounds, {
             padding: 100,
             maxZoom: 13,
             duration: 1000
           });
           
-          // Trigger a re-render to ensure markers are created
           setTimeout(() => {
             setRenderTrigger(prev => prev + 1);
           }, 200);
@@ -165,7 +150,6 @@ const Map = forwardRef<MapRef, MapProps>(({
     }
   }, [map, mapLoaded]);
 
-  // New method to show properties near FedEx locations
   const showPropertiesNearFedEx = useCallback(() => {
     if (!map || !mapLoaded || !pointsOfInterest || !properties) {
       console.log('Map or data not ready for FedEx search');
@@ -174,11 +158,10 @@ const Map = forwardRef<MapRef, MapProps>(({
 
     console.log('Finding properties near FedEx locations');
     
-    // Use new utility function to find properties with nearest FedEx locations
     const { properties: nearFedExProps, fedexLocations } = findPropertiesWithNearestFedEx(
       properties,
       pointsOfInterest,
-      maxDistance * 1.60934 // Convert miles to km
+      maxDistance * 1.60934
     );
     
     if (fedexLocations.length === 0) {
@@ -191,35 +174,27 @@ const Map = forwardRef<MapRef, MapProps>(({
     
     console.log(`Found ${nearFedExProps.length} properties near ${fedexLocations.length} FedEx locations`);
     
-    // Show FedEx locations on map
     setActivePOIs(fedexLocations);
-    
-    // Highlight properties near FedEx
     setPropertiesHighlight(nearFedExProps);
     
-    // Fit map to include both properties and FedEx locations
     if (map && mapLoaded) {
       try {
         const bounds = new mapboxgl.LngLatBounds();
         
-        // Add each property to the bounds
         nearFedExProps.forEach(prop => {
           bounds.extend([prop.longitude, prop.latitude]);
         });
         
-        // Add each FedEx location to the bounds
         fedexLocations.forEach(fedex => {
           bounds.extend([fedex.longitude, fedex.latitude]);
         });
         
-        // Fit the map to the bounds with some padding
         map.fitBounds(bounds, {
           padding: 100,
           maxZoom: 11,
           duration: 1000
         });
         
-        // Trigger a re-render
         setRenderTrigger(prev => prev + 1);
         
         toast({
@@ -299,16 +274,6 @@ const Map = forwardRef<MapRef, MapProps>(({
           <MapTokenInput onTokenChange={() => {}} />
         </div>
       )}
-      
-      {/* Add a "Find Near FedEx" button for quick access */}
-      <div className="absolute bottom-20 right-3 z-10">
-        <button
-          onClick={showPropertiesNearFedEx}
-          className="bg-[#9b59b6] text-white px-3 py-2 rounded-md shadow-md hover:bg-[#8e44ad] transition-colors flex items-center gap-1.5"
-        >
-          <span className="text-sm font-medium">Properties Near FedEx</span>
-        </button>
-      </div>
     </div>
   );
 });
