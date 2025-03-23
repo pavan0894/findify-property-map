@@ -15,7 +15,7 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   
   useEffect(() => {
-    // Make sure map exists
+    // Skip if map is not available
     if (!map) {
       console.log('Map not available for marker', property.id);
       return;
@@ -27,20 +27,8 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
       markerRef.current = null;
     }
     
-    // Wait for map to be fully loaded
-    if (!map.loaded()) {
-      console.log('Map not loaded yet for marker', property.id);
-      const onMapLoad = () => {
-        createMarker();
-        map.off('load', onMapLoad);
-      };
-      map.on('load', onMapLoad);
-      return;
-    }
-    
-    createMarker();
-    
-    function createMarker() {
+    // Create and add marker
+    const createMarker = () => {
       try {
         // Create marker element
         const markerEl = document.createElement('div');
@@ -66,25 +54,29 @@ const MapMarker = ({ property, map, isFiltered, onSelectProperty }: MapMarkerPro
           anchor: 'bottom',
         }).setLngLat([property.longitude, property.latitude]);
         
-        // Only add marker if map container exists
-        if (map && map.getContainer()) {
-          marker.addTo(map);
-          
-          // Add click event
-          marker.getElement().addEventListener('click', () => {
-            onSelectProperty(property);
-          });
-          
-          markerRef.current = marker;
-          console.log('Marker added for property', property.id);
-        } else {
-          console.error('Map container not available for property', property.id);
-        }
+        // Add to map
+        marker.addTo(map);
+        
+        // Add click event
+        marker.getElement().addEventListener('click', () => {
+          onSelectProperty(property);
+        });
+        
+        markerRef.current = marker;
+        console.log('Marker added for property', property.id);
       } catch (error) {
         console.error('Error creating marker for property', property.id, error);
       }
+    };
+    
+    // Check if map is loaded before adding the marker
+    if (map.loaded()) {
+      createMarker();
+    } else {
+      map.once('load', createMarker);
     }
     
+    // Cleanup
     return () => {
       if (markerRef.current) {
         markerRef.current.remove();

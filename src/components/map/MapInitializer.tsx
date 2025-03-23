@@ -50,19 +50,17 @@ const MapInitializer = ({
       mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
       mapInstance.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
 
-      // Wait for map to be fully loaded before notifying
+      // Set up load handler
       mapInstance.on('load', () => {
         console.log('Map loaded successfully');
         setIsInitialized(true);
         onMapReady(mapInstance);
         
-        // Fit map to properties only after it's fully loaded
-        setTimeout(() => {
-          if (properties.length > 0) {
-            console.log(`Fitting map to ${properties.length} properties`);
-            fitMapToProperties(mapInstance, properties);
-          }
-        }, 100);
+        // Fit map to properties after it's fully loaded
+        if (properties.length > 0) {
+          console.log(`Fitting map to ${properties.length} properties`);
+          fitMapToProperties(mapInstance, properties);
+        }
       });
       
       // Handle errors

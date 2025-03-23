@@ -59,18 +59,14 @@ const Map = forwardRef<MapRef, MapProps>(({
     fitMapToProperties(map, properties);
   }, [map, properties]);
 
-  const stableProperties = useRef(properties);
-  
+  // Track property changes
   useEffect(() => {
-    stableProperties.current = properties;
-  }, [properties]);
-
-  useEffect(() => {
-    if (selectedPOI && !activePOIs.some(poi => poi.id === selectedPOI.id)) {
-      setActivePOIs(prev => [...prev, selectedPOI]);
+    if (mapLoaded && map) {
+      console.log(`Map loaded with ${properties.length} total properties and ${filteredProperties.length} filtered properties`);
     }
-  }, [selectedPOI]);
+  }, [mapLoaded, map, properties.length, filteredProperties.length]);
 
+  // Handle POIs for selected property
   useEffect(() => {
     if (selectedProperty && map) {
       const nearbyPOIs = findPOIsNearProperty(
@@ -80,17 +76,18 @@ const Map = forwardRef<MapRef, MapProps>(({
       );
       
       setActivePOIs(nearbyPOIs);
-      
       console.log(`Found ${nearbyPOIs.length} POIs near selected property`);
     }
   }, [selectedProperty, pointsOfInterest, maxDistance, map]);
 
+  // Handle selected POI
   useEffect(() => {
-    if (mapLoaded && map) {
-      console.log(`Map loaded with ${properties.length} total properties, ${filteredProperties.length} filtered properties, and ${activePOIs.length} active POIs`);
+    if (selectedPOI && !activePOIs.some(poi => poi.id === selectedPOI.id)) {
+      setActivePOIs(prev => [...prev, selectedPOI]);
     }
-  }, [mapLoaded, map, properties.length, filteredProperties.length, activePOIs.length]);
+  }, [selectedPOI, activePOIs]);
 
+  // Expose methods via ref
   const clearPOIs = useCallback(() => {
     setActivePOIs([]);
   }, []);
