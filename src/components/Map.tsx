@@ -42,6 +42,7 @@ const Map = forwardRef<MapRef, MapProps>(({
   const [mapError, setMapError] = useState<string | null>(null);
   const [activePOIs, setActivePOIs] = useState<POI[]>([]);
 
+  // Track when map loads
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     console.log('Map is now ready and loaded');
     setMap(mapInstance);
