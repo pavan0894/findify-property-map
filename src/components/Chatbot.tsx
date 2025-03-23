@@ -33,6 +33,7 @@ interface ChatbotProps {
   onSelectProperty: (property: Property) => void;
   onSelectPOI: (poi: POI) => void;
   onShowPOIs: (pois: POI[]) => void;
+  onShowPropertiesNearFedEx?: () => void;
   embedded?: boolean;
 }
 
@@ -45,7 +46,7 @@ interface Message {
 
 const STORAGE_KEY = 'property-assistant-chat';
 
-const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, embedded = false }: ChatbotProps) => {
+const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, onShowPropertiesNearFedEx, embedded = false }: ChatbotProps) => {
   const [isOpen, setIsOpen] = useState(embedded);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -279,6 +280,10 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     console.log(`Found ${propertiesNearFedEx.length} properties near FedEx locations`);
     
     onShowPOIs(fedexLocations);
+    
+    if (onShowPropertiesNearFedEx) {
+      onShowPropertiesNearFedEx();
+    }
     
     if (propertiesNearFedEx.length > 0) {
       const selectedProperty = propertiesNearFedEx[0];
@@ -999,3 +1004,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
 };
 
 export default Chatbot;
+
