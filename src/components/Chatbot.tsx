@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Property, POI } from '@/utils/data';
+import { Property, POI, formatPrice, formatSize } from '@/utils/data';
 import { 
   calculateDistance, 
   kmToMiles, 
@@ -333,6 +333,13 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       const maxPrice = targetPrice * (1 + tolerance);
       return properties.filter(p => p.price >= minPrice && p.price <= maxPrice);
     }
+  };
+
+  const filterPropertiesBySize = (targetSize: number, properties: Property[]): Property[] => {
+    const tolerance = 0.25; // 25% tolerance
+    const minSize = targetSize * (1 - tolerance);
+    const maxSize = targetSize * (1 + tolerance);
+    return properties.filter(p => p.size >= minSize && p.size <= maxSize);
   };
 
   const generateAIResponse = (query: string): string => {
