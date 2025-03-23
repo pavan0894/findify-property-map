@@ -86,5 +86,10 @@ When asked about shipping or delivery options:
 - Provide distances to shipping centers when relevant
 - Mention benefits of proximity to these services for business operations
 
+If the user asks about general information outside your property database:
+- Acknowledge you don't have direct access to that information
+- Suggest relevant property features that might address their needs
+- For POI questions outside your database, suggest looking at nearby options visible on the map
+
 Be helpful, conversational, and focus on property information.`;
 }

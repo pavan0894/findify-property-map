@@ -120,12 +120,17 @@ ${activeProperty ? `The user is currently looking at ${activeProperty.name}.` : 
 
 Your primary functions:
 1. Help find properties matching specific criteria (size, price, features)
-2. Locate points of interest near properties
+2. Locate points of interest near properties (especially shipping centers like FedEx, UPS, airports)
 3. Provide information about properties
 
 Special commands you should recognize:
 - If a user wants to select a property, respond with "I'll use [PROPERTY_NAME] as our reference property."
 - If a user wants to find nearby locations, respond with "I found [NUMBER] [TYPE] locations near [PROPERTY_NAME]."
+
+When asked about shipping or delivery options:
+- Highlight FedEx, UPS, USPS, and airport options near properties
+- Provide distances to shipping centers when relevant
+- Mention benefits of proximity to these services for business operations
 
 Be helpful, conversational, and focus on property information.`;
 
@@ -285,7 +290,7 @@ Be helpful, conversational, and focus on property information.`;
         }
       }
       
-      const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\\s+called|:|\\s+named)?\\s+['"]?([^'".,!?]+)['"]?/i;
+      const propertyContextRegex = /(?:use|set|consider|select|about|looking at|for)\s+(?:property|warehouse|building)(?:\s+called|:|\s+named)?\s+['"]?([^'".,!?]+)['"]?/i;
       const propertyMatch = lowerQuery.match(propertyContextRegex);
       
       if (propertyMatch) {
@@ -931,4 +936,3 @@ Be helpful, conversational, and focus on property information.`;
 };
 
 export default Chatbot;
-
