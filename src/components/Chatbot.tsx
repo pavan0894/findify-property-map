@@ -725,4 +725,158 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     
     if (lowerQuery.includes("average size") || lowerQuery.includes("median size")) {
       const avgSize = properties.reduce((sum, prop) => sum + prop.size, 0) / properties.length;
-      return `The average size of all properties is ${formatSize(avg
+      return `The average size of all properties is ${formatSize(avgSize)}. Would you prefer something larger or smaller?`;
+    }
+    
+    if (activeProperty) {
+      const suggestions = [
+        `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• "Find coffee shops within 2 miles of this property"\n• "Where is the nearest restaurant to this property?"\n• "Show me FedEx locations around this property"\n\nOr you can select a different property with "Use property [name]".`,
+        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest FedEx to this property"\n\nYou can also try "Compare this property with others".`
+      ];
+      return suggestions[Math.floor(Math.random() * suggestions.length)];
+    }
+    
+    return "I can help you find properties or points of interest. Try asking something like 'Show me properties under $5 million' or 'Find properties near FedEx locations'.";
+  };
+
+  return (
+    <div className={`fixed z-50 ${embedded ? 'inset-0' : 'bottom-4 right-4'} transition-all duration-200 ease-in-out`}>
+      {!isOpen && !embedded && (
+        <button
+          onClick={handleToggleChat}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground p-3 rounded-full shadow-lg flex items-center justify-center"
+          aria-label="Open chat assistant"
+        >
+          <MessageSquare className="h-6 w-6" />
+        </button>
+      )}
+      
+      {isOpen && (
+        <div 
+          className={`bg-background border rounded-lg shadow-lg flex flex-col overflow-hidden transition-all duration-200 ${
+            isExpanded || embedded ? 'w-full h-full' : 'w-96 h-[550px]'
+          }`}
+        >
+          <div className="p-3 border-b flex justify-between items-center bg-muted/50">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Property Assistant</h3>
+              {useAI && <Sparkles className="h-4 w-4 text-amber-500" />}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleApiKeyInput} 
+                aria-label="API Settings"
+                title="API Settings"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+              {!embedded && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleToggleExpand} 
+                  aria-label={isExpanded ? "Minimize" : "Maximize"}
+                >
+                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              )}
+              {!embedded && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleCloseChat} 
+                  aria-label="Close chat"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          {showApiKeyInput && (
+            <div className="p-4 border-b bg-muted/30">
+              <ApiKeyInput 
+                onApiKeyChange={handleApiKeyChange}
+                onModelChange={handleModelChange}
+                selectedModel={selectedModel}
+              />
+            </div>
+          )}
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+            {messages.map((message) => (
+              <div 
+                key={message.id} 
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div 
+                  className={`flex gap-2 max-w-[80%] ${
+                    message.sender === 'user' 
+                      ? 'flex-row-reverse' 
+                      : 'flex-row'
+                  }`}
+                >
+                  <div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      message.sender === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  </div>
+                  <div 
+                    className={`rounded-lg p-3 ${
+                      message.sender === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                    dangerouslySetInnerHTML={{ __html: message.content }}
+                  />
+                </div>
+              </div>
+            ))}
+            {isThinking && (
+              <div className="flex justify-start">
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="rounded-lg p-3 bg-muted">
+                    <span className="animate-pulse">Thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-3 border-t">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ask about properties or locations..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isThinking}
+              />
+              <Button 
+                variant="default" 
+                size="icon" 
+                onClick={handleSendMessage}
+                disabled={isThinking || !inputValue.trim()}
+                aria-label="Send message"
+              >
+                <SendHorizonal className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Chatbot;
