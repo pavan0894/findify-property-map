@@ -1,4 +1,4 @@
-# Welcome to your Survey Agent project
+# Welcome to Survey Agent project
 
 ## Project info
 
