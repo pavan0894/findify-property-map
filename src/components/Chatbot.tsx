@@ -775,8 +775,124 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
   };
 
   return (
-    <div>
-      {/* Your component JSX */}
+    <div className={`flex flex-col h-full border rounded-lg overflow-hidden ${embedded ? 'bg-background' : 'bg-background/80 backdrop-blur fixed bottom-6 right-6 w-96 shadow-lg z-50'}`}>
+      {!embedded && (
+        <div className="absolute right-4 top-4 z-10 flex gap-2">
+          <Button variant="ghost" size="icon" onClick={handleToggleExpand} className="h-8 w-8 rounded-full">
+            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleCloseChat} className="h-8 w-8 rounded-full">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      
+      {/* Header */}
+      <div className="flex items-center gap-2 p-3 border-b bg-primary text-primary-foreground">
+        <Bot className="h-5 w-5" />
+        <h3 className="font-semibold">Property Assistant</h3>
+        {embedded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleApiKeyInput}
+            className="ml-auto text-xs h-7 px-2 hover:bg-primary-foreground/20 text-primary-foreground"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            {useAI ? 'AI Enabled' : 'Enable AI'}
+          </Button>
+        )}
+      </div>
+      
+      {/* API Key Input Modal */}
+      {showApiKeyInput && (
+        <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleApiKeyInput} 
+            className="absolute top-3 right-3 h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <ApiKeyInput 
+            apiKey={openAIKey} 
+            onApiKeyChange={handleApiKeyChange}
+            onModelChange={handleModelChange}
+            selectedModel={selectedModel}
+          />
+        </div>
+      )}
+      
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map(message => (
+          <div 
+            key={message.id}
+            className={`flex items-start ${message.sender === 'bot' ? 'justify-start' : 'justify-end'}`}
+          >
+            {message.sender === 'bot' && (
+              <div className="bg-muted w-8 h-8 rounded-full flex items-center justify-center mr-2">
+                <Bot className="h-4 w-4" />
+              </div>
+            )}
+            
+            <div 
+              className={`${
+                message.sender === 'bot' 
+                  ? 'bg-muted text-foreground mr-12' 
+                  : 'bg-primary text-primary-foreground ml-12'
+              } p-3 rounded-lg max-w-[85%]`}
+            >
+              <div dangerouslySetInnerHTML={{ __html: message.content }} />
+              <div className="text-xs opacity-70 mt-1">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            
+            {message.sender === 'user' && (
+              <div className="bg-primary w-8 h-8 rounded-full flex items-center justify-center ml-2">
+                <User className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+        
+        {isThinking && (
+          <div className="flex items-start">
+            <div className="bg-muted w-8 h-8 rounded-full flex items-center justify-center mr-2">
+              <Bot className="h-4 w-4" />
+            </div>
+            <div className="bg-muted text-foreground p-3 rounded-lg">
+              <div className="flex space-x-1">
+                <div className="h-2 w-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="h-2 w-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="h-2 w-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Input Area */}
+      <div className="p-3 border-t flex gap-2">
+        <Input 
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about properties or nearby POIs..."
+          className="flex-1"
+        />
+        <Button 
+          onClick={handleSendMessage} 
+          disabled={isThinking}
+          size="icon"
+          variant="default"
+        >
+          <SendHorizonal className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
