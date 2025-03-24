@@ -49,6 +49,20 @@ interface Message {
 
 const STORAGE_KEY = 'property-assistant-chat';
 
+// Helper function to find the best property match (referenced but not defined in the code)
+const findBestPropertyMatch = (propertyName: string, properties: Property[]): Property | null => {
+  return findBestMatch(propertyName, properties, (p) => p.name);
+};
+
+// Helper function to find matching POIs (referenced but not defined in the code)
+const findMatchingPOIs = (poiType: string, pois: POI[]): POI[] => {
+  const normalizedType = poiType.toLowerCase();
+  return pois.filter(poi => 
+    poi.type.toLowerCase().includes(normalizedType) || 
+    poi.name.toLowerCase().includes(normalizedType)
+  );
+};
+
 const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, onShowPropertiesNearFedEx, embedded = false }: ChatbotProps) => {
   const [isOpen, setIsOpen] = useState(embedded);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -711,10 +725,4 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     
     if (lowerQuery.includes("average size") || lowerQuery.includes("median size")) {
       const avgSize = properties.reduce((sum, prop) => sum + prop.size, 0) / properties.length;
-      return `The average size of all properties is ${formatSize(avgSize)}. Would you prefer something larger or smaller?`;
-    }
-    
-    if (activeProperty) {
-      const suggestions = [
-        `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• "Find coffee shops within 2 miles of this property"\n• "Where is the nearest restaurant to this property?"\n• "Show me FedEx locations around this property"\n\nOr you can select a different property with "Use property [name]".`,
-        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest
+      return `The average size of all properties is ${formatSize(avg
