@@ -49,12 +49,12 @@ interface Message {
 
 const STORAGE_KEY = 'property-assistant-chat';
 
-// Helper function to find the best property match (referenced but not defined in the code)
+// Helper function to find the best property match
 const findBestPropertyMatch = (propertyName: string, properties: Property[]): Property | null => {
   return findBestMatch(propertyName, properties, (p) => p.name);
 };
 
-// Helper function to find matching POIs (referenced but not defined in the code)
+// Helper function to find matching POIs
 const findMatchingPOIs = (poiType: string, pois: POI[]): POI[] => {
   const normalizedType = poiType.toLowerCase();
   return pois.filter(poi => 
@@ -176,7 +176,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       const normalizedQuery = inputValue.toLowerCase();
       const normalizedShippingQuery = normalizeShippingService(normalizedQuery);
       
-      // Handle FedEx-related queries with better recognition
       if (normalizedShippingQuery === 'fedex' && 
           (normalizedQuery.includes('properties') || normalizedQuery.includes('near') || 
            normalizedQuery.includes('close to') || normalizedQuery.includes('by') || 
@@ -208,7 +207,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
           
           console.log('Received AI response:', aiResponse.substring(0, 100) + '...');
           
-          // Process property references in response
           const propertyRegex = /I'll use\s+([^.]+)\s+as our reference property/i;
           const propertyMatch = aiResponse.match(propertyRegex);
           
@@ -227,7 +225,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
             }
           }
           
-          // Process POI references in response with improved parsing
           const poiRegex = /I found\s+(\d+)\s+([^.]+)\s+locations near\s+([^.]+)/i;
           const poiMatch = aiResponse.match(poiRegex);
           
@@ -374,7 +371,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     const lowerQuery = query.toLowerCase();
     console.log("Processing local query:", lowerQuery);
     
-    // Handle shipping queries with better fuzzy matching
     const normalizedShippingQuery = normalizeShippingService(lowerQuery);
     
     if ((normalizedShippingQuery === 'fedex') && 
@@ -390,7 +386,6 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
       return "Looking for properties near FedEx locations...";
     }
     
-    // Extract potential POI types to handle fuzzy queries
     const possiblePOITypes = extractPOITypes(lowerQuery);
     if (possiblePOITypes.length > 0 && 
         (lowerQuery.includes('near') || lowerQuery.includes('close') || 
