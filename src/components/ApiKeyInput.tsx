@@ -12,13 +12,14 @@ const MODEL_STORAGE_KEY = 'openai-model';
 interface ApiKeyInputProps {
   onApiKeyChange: (apiKey: string) => void;
   onModelChange?: (model: string) => void;
+  selectedModel?: string;
 }
 
-const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange, onModelChange }) => {
+const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeyChange, onModelChange, selectedModel: initialSelectedModel }) => {
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState<string>(initialSelectedModel || 'gpt-4o-mini');
 
   useEffect(() => {
     // Load API key from localStorage on component mount
