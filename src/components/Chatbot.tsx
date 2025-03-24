@@ -717,4 +717,68 @@ const Chatbot = ({ properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, 
     if (activeProperty) {
       const suggestions = [
         `You're currently looking at ${activeProperty.name}. You can ask things like:\n\n• "Find coffee shops within 2 miles of this property"\n• "Where is the nearest restaurant to this property?"\n• "Show me FedEx locations around this property"\n\nOr you can select a different property with "Use property [name]".`,
-        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest
+        `We're focused on ${activeProperty.name} right now. Try asking about:\n\n• "What restaurants are nearby?"\n• "Show shipping centers within 3 miles"\n• "Find the closest FedEx location"\n\nYou can also try a different property by saying "use property [name]".`
+      ];
+      return suggestions[Math.floor(Math.random() * suggestions.length)];
+    }
+    
+    return "I'm not sure how to answer that. You can ask me about properties, their features, or points of interest near a specific property. Try selecting a property first by saying 'use property [name]'.";
+  };
+
+  const findBestPropertyMatch = (propertyName: string, properties: Property[]): Property | null => {
+    if (!propertyName) return null;
+    
+    // Try exact match first
+    const exactMatch = properties.find(p => 
+      p.name.toLowerCase() === propertyName.toLowerCase()
+    );
+    
+    if (exactMatch) return exactMatch;
+    
+    // Try partial match
+    const partialMatch = properties.find(p => 
+      p.name.toLowerCase().includes(propertyName.toLowerCase()) ||
+      propertyName.toLowerCase().includes(p.name.toLowerCase())
+    );
+    
+    if (partialMatch) return partialMatch;
+    
+    // Try fuzzy match if no exact or partial match found
+    const bestMatch = findBestMatch(propertyName, properties.map(p => p.name));
+    if (bestMatch) {
+      return properties.find(p => p.name === bestMatch) || null;
+    }
+    
+    return null;
+  };
+  
+  const findMatchingPOIs = (poiType: string, pois: POI[]): POI[] => {
+    if (!poiType) return [];
+    
+    // Normalize the POI type
+    const normalizedType = normalizeShippingService(poiType.toLowerCase());
+    
+    // First try exact match
+    const exactMatches = pois.filter(poi => 
+      poi.type.toLowerCase() === normalizedType ||
+      poi.name.toLowerCase().includes(normalizedType)
+    );
+    
+    if (exactMatches.length > 0) return exactMatches;
+    
+    // Try fuzzy match for POI name or type
+    return pois.filter(poi => {
+      const poiNameMatch = findBestMatch(normalizedType, [poi.name.toLowerCase()]);
+      const poiTypeMatch = findBestMatch(normalizedType, [poi.type.toLowerCase()]);
+      return poiNameMatch !== null || poiTypeMatch !== null;
+    });
+  };
+
+  return (
+    <div>
+      {/* Your component JSX */}
+    </div>
+  );
+};
+
+export default Chatbot;
