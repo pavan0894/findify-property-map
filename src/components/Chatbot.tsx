@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Send } from 'lucide-react';
 import { Property, POI } from '@/utils/data';
 import { toast } from '@/hooks/use-toast';
+import { getOpenAIResponse, ChatMessage as OpenAIChatMessage, formatPropertyAssistantPrompt } from '@/utils/openAIUtils';
 
 const STORAGE_KEY = 'property-assistant-chat';
 
@@ -35,6 +36,10 @@ interface ChatMessage {
   sender: 'user' | 'bot';
 }
 
+// OpenAI API key - in a real application, this would be fetched securely
+// For demo purposes, we're using a state variable that can be set by the user
+const DEFAULT_OPENAI_API_KEY = ''; // Empty by default
+
 const Chatbot: React.FC<ChatbotProps> = ({ 
   properties, 
   pois, 
@@ -47,7 +52,21 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string>(DEFAULT_OPENAI_API_KEY);
+  const [openAIMessages, setOpenAIMessages] = useState<OpenAIChatMessage[]>([]);
+  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(!DEFAULT_OPENAI_API_KEY);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Initialize OpenAI chat history
+  useEffect(() => {
+    // System message with context about properties and POIs
+    const systemMessage: OpenAIChatMessage = {
+      role: 'system',
+      content: formatPropertyAssistantPrompt(properties.length, pois.length)
+    };
+    
+    setOpenAIMessages([systemMessage]);
+  }, [properties.length, pois.length]);
   
   // Load chat history from local storage on component mount
   useEffect(() => {
@@ -91,7 +110,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
   }, [messages]);
   
-  const sendMessage = useCallback(() => {
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setApiKey(e.target.value);
+  };
+  
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
     
     setIsLoading(true);
@@ -102,88 +125,202 @@ const Chatbot: React.FC<ChatbotProps> = ({
       sender: 'user',
     };
     
+    // Add user message to chat history
     setMessages(prevMessages => [...prevMessages, userMessage]);
     setInput('');
     
-    // Process the user's message and generate a response
-    setTimeout(() => {
-      processUserMessage(input);
-      setIsLoading(false);
-    }, 300); // Small delay to simulate processing
-  }, [input, isLoading]);
-  
-  const processUserMessage = useCallback((message: string) => {
-    // Normalize the message to improve matching accuracy
-    const normalizedMessage = message.toLowerCase().trim();
+    // Check for direct property matches or POI types before sending to OpenAI
+    const propertyMatch = findBestPropertyMatch(input, properties);
+    const poiTypes = extractPOITypes(input);
     
-    // 1. Property Search by Name
-    const propertyMatch = findBestPropertyMatch(normalizedMessage, properties);
+    // Update OpenAI message history
+    const userOpenAIMessage: OpenAIChatMessage = {
+      role: 'user',
+      content: input
+    };
+    setOpenAIMessages(prev => [...prev, userOpenAIMessage]);
+    
+    // Handle specific property requests directly
     if (propertyMatch) {
+      const botResponse = `I found a property named ${propertyMatch.name}. Now focusing on this property.`;
+      
+      // Add bot response to chat
       const botMessage: ChatMessage = {
         id: Date.now().toString(),
-        text: `I found a property named ${propertyMatch.name}. Now focusing on this property.`,
+        text: botResponse,
         sender: 'bot',
       };
       setMessages(prevMessages => [...prevMessages, botMessage]);
       onSelectProperty(propertyMatch);
+      
+      // Add assistant response to OpenAI history
+      const assistantMessage: OpenAIChatMessage = {
+        role: 'assistant',
+        content: botResponse
+      };
+      setOpenAIMessages(prev => [...prev, assistantMessage]);
+      
+      setIsLoading(false);
       return;
     }
     
-    // 2. POI Search by Type
-    const extractedTypes = extractPOITypes(normalizedMessage);
-    if (extractedTypes.length > 0) {
-      const matchingPOIs = findMatchingPOIs(extractedTypes[0], pois);
+    // Handle specific POI type requests directly
+    if (poiTypes.length > 0) {
+      const matchingPOIs = findMatchingPOIs(poiTypes[0], pois);
       if (matchingPOIs.length > 0) {
+        const botResponse = `I found ${matchingPOIs.length} locations matching "${poiTypes[0]}". Showing them on the map.`;
+        
+        // Add bot response to chat
         const botMessage: ChatMessage = {
           id: Date.now().toString(),
-          text: `I found ${matchingPOIs.length} locations matching "${extractedTypes[0]}". Showing them on the map.`,
+          text: botResponse,
           sender: 'bot',
         };
         setMessages(prevMessages => [...prevMessages, botMessage]);
         onShowPOIs(matchingPOIs);
+        
+        // Add assistant response to OpenAI history
+        const assistantMessage: OpenAIChatMessage = {
+          role: 'assistant',
+          content: botResponse
+        };
+        setOpenAIMessages(prev => [...prev, assistantMessage]);
+        
         toast({
           title: `Found ${matchingPOIs.length} locations`,
-          description: `Showing ${extractedTypes[0]} locations on the map`
+          description: `Showing ${poiTypes[0]} locations on the map`
         });
-        return;
-      } else {
-        const botMessage: ChatMessage = {
-          id: Date.now().toString(),
-          text: `I couldn't find any specific locations matching "${extractedTypes[0]}".`,
-          sender: 'bot',
-        };
-        setMessages(prevMessages => [...prevMessages, botMessage]);
+        
+        setIsLoading(false);
         return;
       }
     }
     
-    // 3. Find properties near a specific shipping service (e.g., FedEx)
-    if (normalizedMessage.includes('near') && (normalizedMessage.includes('fedex') || normalizedMessage.includes('shipping'))) {
-      const normalizedShippingQuery = normalizeShippingService(normalizedMessage);
+    // Check for FedEx/shipping requests
+    const normalizedInput = input.toLowerCase();
+    if (normalizedInput.includes('near') && (normalizedInput.includes('fedex') || normalizedInput.includes('shipping'))) {
+      const normalizedShippingQuery = normalizeShippingService(normalizedInput);
       if (normalizedShippingQuery === 'fedex') {
+        const botResponse = "Finding properties near FedEx locations...";
+        
+        // Add bot response to chat
         const botMessage: ChatMessage = {
           id: Date.now().toString(),
-          text: "Finding properties near FedEx locations...",
+          text: botResponse,
           sender: 'bot',
         };
         setMessages(prevMessages => [...prevMessages, botMessage]);
         onShowPropertiesNearFedEx();
+        
+        // Add assistant response to OpenAI history
+        const assistantMessage: OpenAIChatMessage = {
+          role: 'assistant',
+          content: botResponse
+        };
+        setOpenAIMessages(prev => [...prev, assistantMessage]);
+        
         toast({
           title: "Finding Properties Near FedEx",
           description: "Showing properties with nearby FedEx locations"
         });
+        
+        setIsLoading(false);
         return;
       }
     }
     
-    // 4. Default Response
-    const botMessage: ChatMessage = {
-      id: Date.now().toString(),
-      text: "I'm not sure how to help with that. You can ask about specific properties by name, find points of interest like restaurants or FedEx locations, or search for properties near shipping services.",
-      sender: 'bot',
-    };
-    setMessages(prevMessages => [...prevMessages, botMessage]);
-  }, [properties, pois, onSelectProperty, onSelectPOI, onShowPOIs, onShowPropertiesNearFedEx]);
+    // For any other queries, get a response from OpenAI
+    try {
+      if (!apiKey) {
+        setShowApiKeyInput(true);
+        const botMessage: ChatMessage = {
+          id: Date.now().toString(),
+          text: "Please enter your OpenAI API key to enable AI responses. This key will only be stored in your browser.",
+          sender: 'bot',
+        };
+        setMessages(prevMessages => [...prevMessages, botMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Get response from OpenAI
+      const aiResponse = await getOpenAIResponse(openAIMessages, apiKey);
+      
+      // Add AI response to chat
+      const botMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: aiResponse,
+        sender: 'bot',
+      };
+      setMessages(prevMessages => [...prevMessages, botMessage]);
+      
+      // Add AI response to OpenAI history
+      const assistantMessage: OpenAIChatMessage = {
+        role: 'assistant',
+        content: aiResponse
+      };
+      setOpenAIMessages(prev => [...prev, assistantMessage]);
+      
+      // Process AI response for actions (property selection, POI display, etc.)
+      processAIResponse(aiResponse);
+      
+    } catch (error) {
+      console.error("Error getting OpenAI response:", error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      
+      // Add error message to chat
+      const botMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: `Sorry, I encountered an error: ${errorMessage}`,
+        sender: 'bot',
+      };
+      setMessages(prevMessages => [...prevMessages, botMessage]);
+      
+      // Show toast with error
+      toast({
+        title: "AI Response Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, properties, pois, apiKey, openAIMessages, onSelectProperty, onShowPOIs, onShowPropertiesNearFedEx]);
+  
+  // Process AI responses for potential actions
+  const processAIResponse = (response: string) => {
+    // Check for property selection intent in AI response
+    if (response.includes("I'll use") && response.includes("as our reference property")) {
+      const propertyNameMatch = response.match(/I'll use ([^.]+) as our reference property/);
+      if (propertyNameMatch && propertyNameMatch[1]) {
+        const propertyName = propertyNameMatch[1].trim();
+        const property = findBestPropertyMatch(propertyName, properties);
+        if (property) {
+          onSelectProperty(property);
+          toast({
+            title: "Property Selected",
+            description: `Now focusing on ${property.name}`
+          });
+        }
+      }
+    }
+    
+    // Check for POI display intent in AI response
+    if (response.includes("I found") && response.includes("locations near")) {
+      const poiMatch = response.match(/I found (\d+) ([^\s]+) locations near/);
+      if (poiMatch && poiMatch[2]) {
+        const poiType = poiMatch[2].trim();
+        const matchingPOIs = findMatchingPOIs(poiType, pois);
+        if (matchingPOIs.length > 0) {
+          onShowPOIs(matchingPOIs);
+          toast({
+            title: `Found ${matchingPOIs.length} locations`,
+            description: `Showing ${poiType} locations on the map`
+          });
+        }
+      }
+    }
+  };
   
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && !isLoading) {
@@ -201,7 +338,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       )}
       
       <CardContent className="relative flex-1 p-2 overflow-hidden">
-        <ScrollArea className="h-full pr-4">
+        <ScrollArea className="h-full pr-4" ref={chatContainerRef}>
           <div className="flex flex-col gap-3 p-2">
             {messages.map(msg => (
               <div key={msg.id} className={`flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -238,6 +375,32 @@ const Chatbot: React.FC<ChatbotProps> = ({
           </div>
         </ScrollArea>
       </CardContent>
+      
+      {showApiKeyInput && (
+        <div className="px-4 py-2 border-t">
+          <div className="mb-2">
+            <p className="text-sm text-muted-foreground mb-1">Enter your OpenAI API key to enable AI responses:</p>
+            <Input
+              type="password"
+              placeholder="sk-..."
+              value={apiKey}
+              onChange={handleApiKeyChange}
+              className="w-full"
+            />
+          </div>
+          <div className="flex justify-between">
+            <p className="text-xs text-muted-foreground">This key is only stored in your browser</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowApiKeyInput(false)} 
+              disabled={!apiKey}
+            >
+              Save Key
+            </Button>
+          </div>
+        </div>
+      )}
       
       <CardFooter className="p-2">
         <div className="flex items-center space-x-2 w-full">
