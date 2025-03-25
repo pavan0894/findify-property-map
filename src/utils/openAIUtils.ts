@@ -25,7 +25,8 @@ export async function getOpenAIResponse(
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 1000,
+        stream: false // Ensure streaming is off to get complete responses
       })
     });
 
@@ -38,6 +39,8 @@ export async function getOpenAIResponse(
         throw new Error('Your OpenAI API key has exceeded its quota. Please check your billing details or try again later.');
       } else if (errorData.error?.type === 'invalid_request_error') {
         throw new Error(`Invalid request: ${errorData.error?.message || 'Unknown error'}`);
+      } else if (errorData.error?.code === 'rate_limit_exceeded') {
+        throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
       } else {
         throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
       }
@@ -111,6 +114,8 @@ If the user asks about general information outside your property database:
 - Acknowledge you don't have direct access to that information
 - Suggest relevant property features that might address their needs
 - For POI questions outside your database, suggest looking at nearby options visible on the map
+
+IMPORTANT: RESPOND QUICKLY AND WITH A CONVERSATIONAL TONE. KEEP YOUR RESPONSES BRIEF AND FOCUSED ON THE USER'S QUESTION.
 
 Be helpful, conversational, and focus on property information.`;
 }

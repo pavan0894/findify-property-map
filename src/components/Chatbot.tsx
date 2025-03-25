@@ -55,17 +55,21 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const [apiKey, setApiKey] = useState<string>(DEFAULT_OPENAI_API_KEY);
   const [openAIMessages, setOpenAIMessages] = useState<OpenAIChatMessage[]>([]);
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(!DEFAULT_OPENAI_API_KEY);
+  const [isThinking, setIsThinking] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
   // Initialize OpenAI chat history
   useEffect(() => {
-    // System message with context about properties and POIs
+    // Create a detailed system message with specific property and POI information
     const systemMessage: OpenAIChatMessage = {
       role: 'system',
       content: formatPropertyAssistantPrompt(properties.length, pois.length)
     };
     
     setOpenAIMessages([systemMessage]);
+    
+    // Log for debugging
+    console.log(`Initialized chatbot with ${properties.length} properties and ${pois.length} POIs`);
   }, [properties.length, pois.length]);
   
   // Load chat history from local storage on component mount
@@ -129,6 +133,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setMessages(prevMessages => [...prevMessages, userMessage]);
     setInput('');
     
+    // Start "thinking" animation
+    setIsThinking(true);
+    
     // Check for direct property matches or POI types before sending to OpenAI
     const propertyMatch = findBestPropertyMatch(input, properties);
     const poiTypes = extractPOITypes(input);
@@ -160,6 +167,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       };
       setOpenAIMessages(prev => [...prev, assistantMessage]);
       
+      setIsThinking(false);
       setIsLoading(false);
       return;
     }
@@ -191,6 +199,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
           description: `Showing ${poiTypes[0]} locations on the map`
         });
         
+        setIsThinking(false);
         setIsLoading(false);
         return;
       }
@@ -224,6 +233,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
           description: "Showing properties with nearby FedEx locations"
         });
         
+        setIsThinking(false);
         setIsLoading(false);
         return;
       }
@@ -239,12 +249,39 @@ const Chatbot: React.FC<ChatbotProps> = ({
           sender: 'bot',
         };
         setMessages(prevMessages => [...prevMessages, botMessage]);
+        setIsThinking(false);
         setIsLoading(false);
         return;
       }
       
-      // Get response from OpenAI
-      const aiResponse = await getOpenAIResponse(openAIMessages, apiKey);
+      // Show temporary "thinking" message
+      const thinkingId = Date.now().toString() + '-thinking';
+      const thinkingMessage: ChatMessage = {
+        id: thinkingId,
+        text: "Thinking...",
+        sender: 'bot',
+      };
+      setMessages(prevMessages => [...prevMessages, thinkingMessage]);
+      
+      // Get response from OpenAI with timeout handling
+      let timeoutId: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<string>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error("Request timed out. Please try again."));
+        }, 15000); // 15 second timeout
+      });
+      
+      // Race between the actual API call and the timeout
+      const aiResponse = await Promise.race([
+        getOpenAIResponse(openAIMessages, apiKey),
+        timeoutPromise
+      ]);
+      
+      // Clear timeout if we got a response
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // Replace thinking message with actual response
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== thinkingId));
       
       // Add AI response to chat
       const botMessage: ChatMessage = {
@@ -264,9 +301,17 @@ const Chatbot: React.FC<ChatbotProps> = ({
       // Process AI response for actions (property selection, POI display, etc.)
       processAIResponse(aiResponse);
       
+      toast({
+        title: "Response Ready",
+        description: "The AI has responded to your query"
+      });
+      
     } catch (error) {
       console.error("Error getting OpenAI response:", error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      
+      // Remove thinking message
+      setMessages(prevMessages => prevMessages.filter(msg => !msg.id.includes('-thinking')));
       
       // Add error message to chat
       const botMessage: ChatMessage = {
@@ -283,6 +328,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
         variant: "destructive"
       });
     } finally {
+      setIsThinking(false);
       setIsLoading(false);
     }
   }, [input, isLoading, properties, pois, apiKey, openAIMessages, onSelectProperty, onShowPOIs, onShowPropertiesNearFedEx]);
@@ -351,19 +397,29 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 <div className={`p-3 rounded-lg max-w-[80%] ${
                   msg.sender === 'user' 
                     ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'
+                    : msg.id.includes('-thinking') 
+                      ? 'bg-muted/70' 
+                      : 'bg-muted'
                 }`}>
-                  {msg.text}
+                  {msg.id.includes('-thinking') ? (
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-100"></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-200"></div>
+                    </div>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {isThinking && !messages.some(msg => msg.id.includes('-thinking')) && (
               <div className="flex justify-start gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="https://github.com/shadcn.png" alt="Bot Avatar" />
                   <AvatarFallback>AI</AvatarFallback>
                 </Avatar>
-                <div className="p-3 rounded-lg bg-muted">
+                <div className="p-3 rounded-lg bg-muted/70">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-100"></div>
@@ -417,8 +473,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
             onClick={sendMessage} 
             disabled={isLoading || !input.trim()}
             size="icon"
+            className="transition-all duration-200"
           >
-            <Send className="h-4 w-4"/>
+            <Send className={`h-4 w-4 ${isLoading ? 'opacity-50' : ''}`}/>
           </Button>
         </div>
       </CardFooter>
